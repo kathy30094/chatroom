@@ -27,14 +27,18 @@ io.on('connection', (socket) => {
         onlineCount = (onlineCount < 0) ? 0 : onlineCount-=1;
         io.emit("onlinee", onlineCount);
     });
-    socket.on("send", (msg) => {
-        console.log(msg)
-    });
+    // socket.on("send", (msg) => {
+    //     console.log(msg)
+    // });
     
     // 修改 console.log 成 io.emit
     socket.on("send", (msg) => {
         // 廣播訊息到聊天室
         io.emit("msg", msg);
+    });
+
+    socket.on('test', (test) => {
+        console.log(test);
     });
 
     // 當發生離線事件
