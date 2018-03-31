@@ -30,8 +30,8 @@
 </template>
 
 <script>
+
 export default {
-  name: 'HelloWorld',
   data(){
     return{
       chatData: {
@@ -72,19 +72,22 @@ export default {
     
   },
   sockets: {
-    ['connect'] (){
+    connect(){
       this.status = 'Connceted';
+      console.log('aaaa')
     },
-    ['onlinee'](count){
+    onlinee(count){
       this.peopleOnline = count;
+      console.log(count);
     },
-    ['disconnect'](){
+    disconnect(){
       this.status = 'disConnceted';
     },
     
   },
   mounted() {
     this.test();
+    console.log(window.name);
 
   }
 }

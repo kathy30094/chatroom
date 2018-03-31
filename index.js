@@ -4,6 +4,15 @@ const app = express();
 const server = require('http').Server(app);
 const io = require('socket.io')(server);
 
+// const bodyParser = require('body-parser');
+// //const xml2json=require('xml2json');
+// const http = require('http');
+// const url = require('url');
+// const util = require('util');
+// // const querystring = require('querystring');
+
+
+
 app.use(express.static(__dirname + '/dist'));
 app.get('/', function(req, res){
   res.sendfile('index.html');
@@ -27,9 +36,6 @@ io.on('connection', (socket) => {
         onlineCount = (onlineCount < 0) ? 0 : onlineCount-=1;
         io.emit("onlinee", onlineCount);
     });
-    // socket.on("send", (msg) => {
-    //     console.log(msg)
-    // });
     
     // 修改 console.log 成 io.emit
     socket.on("send", (msg) => {
@@ -40,18 +46,21 @@ io.on('connection', (socket) => {
     socket.on('test', (test) => {
         console.log(test);
     });
-
-    // 當發生離線事件
-    // socket.on('disconnect', () => {
-    //     console.log('Bye~');  // 顯示 bye~
-    // });
 });
+////get
+    // http.createServer(function(req, res){
+    //     res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8'});
+    //     var params = url.parse(req.url, true).query;
+    //     res.write("aaa : " + params.token);
+    //     console.log('testchatroom');
+    //     console.log(params.token);
+    //     // res.end(util.inspect(url.parse(req.url, true)));
+// }).listen(5000);
 
 
-
-server.listen(3000, () => {
+server.listen(3000, (req, res) => {
     console.log("server started. http://localhost:3000");
-});
 
+});
 
 
