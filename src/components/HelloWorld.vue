@@ -13,17 +13,16 @@
       
       <div id="send-box">
         
-          <form id="send-form">
-            <input type="text" name="msg" id="msg" placeholder="說點什麼？">
-            <button @click="say" text="送出">
-
-
-            <span id="name">{{chatData.name}} : </span>
-            <!-- <input type="text" name="name" id="name" placeholder="暱稱" value=> -->
-            <input type="text" name="msg" id="msg" placeholder="說點什麼？">
-            <button @click="say" text="送出">
-
-          </form>
+        <form id="send-form">
+          <span id="name">{{chatData.name}} : </span>
+          <!-- <input type="text" name="name" id="name" placeholder="暱稱" value=> -->
+          <input v-modole="chatData.msg" type="text" name="msg" id="msg" placeholder="說點什麼？">
+          <button @click="say" text="送出">
+        </form>
+      </div>
+      <div>
+        <form id="room-form"> 
+        <input v-modole="chatData.roomid" type="text" name="roomid" id="roomid" placeholder="member talk to...">
       </div>
     </div>
     <!-- <h1>{{ msg }}</h1>
@@ -45,7 +44,7 @@ export default {
         name: '',
         msg: '',
         token: sessionStorage.token,
-        roomid: 'roomA',
+        roomid: '',
       },
       peopleOnline: '',
       status: '',
@@ -61,18 +60,34 @@ export default {
     isOnline(){
       this.$socket.emit('isOnline',this.token);
     },
+
     say(){
       //call backend
       console.log('say');
+      let chatData = {
+        name: this.chatData.name,
+        msg: this.chatData.msg,
+        token: sessionStorage.token,
+        roomid: this.chatData.roomid,
+      };
+
       this.$socket.emit('say', this.chatData);
       this.chatData.msg = '';
     },
+
     join(){
+      let chatData = {
+        name: this.chatData.name,
+        msg: this.chatData.msg,
+        token: sessionStorage.token,
+        roomid: this.chatData.roomid,
+      };
       this.$socket.emit('join',this.chatData);
 
       console.log('join');
     },
   },
+
   sockets: {
     connect(){
       this.status = 'Connceted';
@@ -100,7 +115,7 @@ export default {
       switch(msg.event){
         case 'join':
           console.log('event join');
-          console.log(msg.data.name);
+          console.log(msg.data.name+"join in room"+msg.data.roomid);
           break;
       }
       // if(msg.data.username!==sessionStorage.userAcc) {
