@@ -36,55 +36,49 @@
 </template>
 
 <script>
-
 export default {
   data(){
     return{
       chatData: {
-        name: '',
+        // name: '',
         msg: '',
         token: sessionStorage.token,
-        roomid: '',
+        roomid: 'roomA',
       },
       peopleOnline: '',
       status: '',
       msgs: [],
       token: sessionStorage.token,
-
     }
     
-
   },
   methods: {
   
     isOnline(){
       this.$socket.emit('isOnline',this.token);
     },
-
     say(){
       //call backend
       console.log('say');
       let chatData = {
-        name: this.chatData.name,
+        // name: this.chatData.name,
         msg: this.chatData.msg,
         token: sessionStorage.token,
         roomid: this.chatData.roomid,
       };
-
       this.$socket.emit('say', this.chatData);
       this.chatData.msg = '';
     },
 
     join(){
       let chatData = {
-        name: this.chatData.name,
+        // name: this.chatData.name,
         msg: this.chatData.msg,
         token: sessionStorage.token,
         roomid: this.chatData.roomid,
       };
       this.$socket.emit('join',this.chatData);
-
-      console.log('join');
+      console.log('joined');
     },
   },
 
@@ -93,29 +87,36 @@ export default {
       this.status = 'Connceted';
       console.log('aaaa')
     },
+
     online(count){
       this.peopleOnline = count;
       console.log(count);
     },
+
     disconnect(){
       this.status = 'disConnceted';
     },
+
     tokenStatus(memberData)
     {
       console.log(memberData);
     },
+    
     memberName(memberAcc)
     {
-      this.chatData.name = memberAcc;
       sessionStorage.setItem('name',memberAcc);
-      console.log(memberAcc);
+      this.chatData.name = sessionStorage.name;
+      
+      //console.log(memberAcc);
     },
+
     message(msg)
     {
       switch(msg.event){
         case 'join':
           console.log('event join');
-          console.log(msg.data.name+"join in room"+msg.data.roomid);
+          console.log(msg.data.name);
+          console.log(msg.data.name+" join in room "+msg.data.roomid);
           break;
       }
       // if(msg.data.username!==sessionStorage.userAcc) {
@@ -128,28 +129,22 @@ export default {
     sessionStorage.setItem('token',window.name);
     this.isOnline();
     this.join();
-
   }
 }
 // socket.on("msg", function (d) {
   //     var msgBox = document.createElement("div")
   //         msgBox.className = "msg";
-
   //     var nameBox = document.createElement("span");
   //         nameBox.className = "name";
-
   //     var name = document.createTextNode(d.name);
   //     var msg = document.createTextNode(d.msg);
-
   //     nameBox.appendChild(name);
   //     msgBox.appendChild(nameBox);
   //     msgBox.appendChild(msg);
   //     content.appendChild(msgBox);
 // });
-
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-
 </style>
