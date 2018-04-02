@@ -12,10 +12,17 @@
       </ul> -->
       
       <div id="send-box">
+        
           <form id="send-form">
-              <input type="text" name="name" id="name" placeholder="暱稱">
-              <input type="text" name="msg" id="msg" placeholder="說點什麼？">
-              <input type="submit" value="送出">
+            <input type="text" name="msg" id="msg" placeholder="說點什麼？">
+            <button @click="say" text="送出">
+
+
+            <span id="name">{{chatData.name}} : </span>
+            <!-- <input type="text" name="name" id="name" placeholder="暱稱" value=> -->
+            <input type="text" name="msg" id="msg" placeholder="說點什麼？">
+            <button @click="say" text="送出">
+
           </form>
       </div>
     </div>
@@ -37,79 +44,93 @@ export default {
       chatData: {
         name: '',
         msg: '',
+        token: sessionStorage.token,
+        roomid: 'roomA',
       },
       peopleOnline: '',
       status: '',
       msgs: [],
+      token: sessionStorage.token,
 
     }
     
 
   },
   methods: {
-    // sendForm.addEventListener("submit", function(e){
-      //   e.preventDefault(); //阻止元素发生默认的行为（例如，当点击提交按钮时阻止对表单的提交
-
-      //   var formData = {};
-      //   var formChild = sendForm.children;
-
-      //   for (var i=0; i< sendForm.childElementCount; i++) {
-      //       var child = formChild[i];
-      //       if (child.name !== "") {
-      //           formData[child.name] = child.value;
-      //       }
-      //   }
-      //   socket.emit("send", formData);
-    // });
-    sendToEveryone(){
+  
+    isOnline(){
+      this.$socket.emit('isOnline',this.token);
+    },
+    say(){
       //call backend
-      this.$socket.emit('send', this.chatData.msg);
+      console.log('say');
+      this.$socket.emit('say', this.chatData);
       this.chatData.msg = '';
     },
-    test(){
-      this.$socket.emit('test','test');
+    join(){
+      this.$socket.emit('join',this.chatData);
+
+      console.log('join');
     },
-    
   },
   sockets: {
     connect(){
       this.status = 'Connceted';
       console.log('aaaa')
     },
-    onlinee(count){
+    online(count){
       this.peopleOnline = count;
       console.log(count);
     },
     disconnect(){
       this.status = 'disConnceted';
     },
-    
+    tokenStatus(memberData)
+    {
+      console.log(memberData);
+    },
+    memberName(memberAcc)
+    {
+      this.chatData.name = memberAcc;
+      sessionStorage.setItem('name',memberAcc);
+      console.log(memberAcc);
+    },
+    message(msg)
+    {
+      switch(msg.event){
+        case 'join':
+          console.log('event join');
+          console.log(msg.data.name);
+          break;
+      }
+      // if(msg.data.username!==sessionStorage.userAcc) {
+      //   console.log(msg.data.username + '说: ' + msg.data.text);
+      //   showMessage(msg.data);
+      // }
+    },
   },
   mounted() {
-    this.test();
-    console.log(window.name);
+    sessionStorage.setItem('token',window.name);
+    this.isOnline();
+    this.join();
 
   }
 }
 // socket.on("msg", function (d) {
-//     var msgBox = document.createElement("div")
-//         msgBox.className = "msg";
+  //     var msgBox = document.createElement("div")
+  //         msgBox.className = "msg";
 
-//     var nameBox = document.createElement("span");
-//         nameBox.className = "name";
+  //     var nameBox = document.createElement("span");
+  //         nameBox.className = "name";
 
-//     var name = document.createTextNode(d.name);
-//     var msg = document.createTextNode(d.msg);
+  //     var name = document.createTextNode(d.name);
+  //     var msg = document.createTextNode(d.msg);
 
-//     nameBox.appendChild(name);
-//     msgBox.appendChild(nameBox);
-//     msgBox.appendChild(msg);
-//     content.appendChild(msgBox);
+  //     nameBox.appendChild(name);
+  //     msgBox.appendChild(nameBox);
+  //     msgBox.appendChild(msg);
+  //     content.appendChild(msgBox);
 // });
-
-
-
-
 
 </script>
 
