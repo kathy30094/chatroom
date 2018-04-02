@@ -12,8 +12,8 @@ const io = require('socket.io')(server);
 const redis = require('redis');
 const redisClient = redis.createClient();
 
-const pub = redis.createClient();
-const sub = redis.createClient();
+// const pub = redis.createClient();
+// const sub = redis.createClient();
 
 var process = require('process');
 
@@ -32,21 +32,35 @@ io.on('connection', (socket) => {
 
     socket.on('join', (data) => {
         socket.join(data.roomid);
-        //socket.join('roomB');
+
+        //var rooms = socket.adapter.rooms;
+        //console.log(rooms);
+
+
+
+        //-------------------------------error : redis get 得到的值只能在function 內使用
+        // redisClient.get(data.token, (err,res) => {
+        //     console.log(res);
+        //     var memberdata = JSON.parse(res);
+        //     var retData={
+        //         name: memberdata.Account,
+        //         token: data.token,
+        //         roomid: data.roomid,
+        //     };
+        // });
+        
         socket['room']=data.roomid;
-        var rooms = socket.adapter.rooms;
-        socket.broadcast.in(socket['room']).emit('message', {"event":'join', "data":data});
-        console.log(rooms);
-        //console.log(socket);
+        console.log(retData);
+        // console.log('roomid = '+ data.roomid);
+        socket.broadcast.in(socket['room']).emit('message', {"event":'join', "data": retData});
+
         console.log('join');
-        //console.log(socket.rooms);
-        //console.log(socket['room']);
     });
 
     socket.on('isOnline',(token) => {
-        //redisClient.get(token, redis.print);
+        //-------------------------------error : redis get 得到的值只能在function 內使用
         redisClient.get(token,(error, res) => {
-            console.log(res);
+            //console.log(res);
             if(res != null)
             {
                 var memberdata = JSON.parse(res);
@@ -135,5 +149,3 @@ server.listen(3000, (req, res) => {
     console.log("server started. http://localhost:3000");
 
 });
-
-
