@@ -16,63 +16,59 @@ redisClient.on('ready',function(err){
     console.log('redis ready');
 });
 
-// const pub = redis.createClient();
-// const sub = redis.createClient();
 var process = require('process');
 
 let onlineCount = 0;
 
 
+
 //connection
 io.on('connection', (socket) => {
+    var memberdata = {};
 
     console.log('Hello!');  // 顯示 Hello!
-    //console.log(socket);
     
     onlineCount++;
-
-    socket.on('join', (data) => {
-
-        //console.log('join token'+data.token);
-
-        redisClient.get(data.token, (err,res) => {
-            console.log('res'+res);
-            var memberdata = JSON.parse(res);
-            if(res != null)
-            {
-                
-                data.roomids.forEach(roomid => {
-                    console.log('join roomid = '+roomid)
-                    socket.join(roomid);
-                    var retData={
-                        name: memberdata.Account,
-                        token: data.token,
-                        roomid: roomid,
-                    }
-                    socket['room']=roomid;
-                    console.log('retdata'+retData);
-                    socket.broadcast.in(socket['room']).emit('message', {"event":'join', "data": retData});
-                });   
-            };
-        //var rooms = socket.adapter.rooms;
-        //console.log(rooms);
-        });
-
-    });
     
+    //一登入就進來登記
     socket.on('isOnline',(token) => {
-
+        // var memberdata={};
         console.log(token);
         redisClient.get(token,(error, res) => {
             //console.log(res);
             if(res != null)
             {
-                var memberdata = JSON.parse(res);
+                memberdata = JSON.parse(res);
                 socket.emit('memberName',memberdata.Account);
             }
         });
         
         io.emit("online", onlineCount);
+    });
+
+    socket.on('join', (data) => {
+
+        
+        redisClient.get(data.token, (err,res) => {
+            //console.log('res'+res);
+            memberdata = JSON.parse(res);
+        });
+
+        if(memberdata != null)
+            {
+                data.roomids.forEach(roomid => {
+                    console.log('join roomid = '+roomid)
+                    socket.join(roomid);
+
+                    var retData={
+                        name: memberdata.Account,
+                        token: data.token,
+                        roomid: roomid,
+                    }
+                    console.log('retdata'+retData);
+                    socket.broadcast.in(roomid).emit('message', {"event":'join', "data": retData});
+                });   
+            };
     });
 
     socket.on('disconnect', () => {
@@ -83,23 +79,34 @@ io.on('connection', (socket) => {
     
     socket.on("say", (chatData) => {
 
-        console.log('msg : '+chatData.msg);
+        // var memberdata={};
         redisClient.get(chatData.token, (err,res) => {
             console.log('res'+res);
-            var memberdata = JSON.parse(res);
-            if(chatData.roomid=='all')
-            {
-                let retData={
-                    name: memberdata.Account,
-                    msg: chatData.msg,
-                    roomid: chatData.roomid,  
-                };
-                io.emit('message',{'event':'say', 'data': retData});
-            }
-            else
-            {}
+
+            memberdata = JSON.parse(res);
+            
         });
 
+        var retData={
+            name: memberdata.Account,
+            msg: chatData.msg,
+            roomid: chatData.roomid,  
+        };
+
+        if(chatData.roomid=='all')
+            io.emit('message',{'event':'say', 'data': retData});
+        else
+        {
+            //檢查member是否已經加入了room   -->須改用redis存
+            rooms=socket.adapter.rooms[chatData.roomid];
+            // JSON.stringify(rooms);
+            // console.log("rooms  "+ JSON.stringify(rooms));
+            if(rooms!=null)
+            {
+                socket['room']=chatData.roomid;
+                io.in(socket['room']).emit('message',{'event':'say', 'data': retData});
+            }
+        }
         
     });
 
