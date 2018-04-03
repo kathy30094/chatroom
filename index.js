@@ -32,43 +32,46 @@ io.on('connection', (socket) => {
     
     //一登入就進來登記
     socket.on('isOnline',(token) => {
-        // var memberdata={};
-        console.log(token);
-        redisClient.get(token,(error, res) => {
-            //console.log(res);
-            if(res != null)
-            {
-                memberdata = JSON.parse(res);
-                socket.emit('memberName',memberdata.Account);
-            }
-        });
         
-        io.emit("online", onlineCount);
+        console.log(token);
+
+        redisClient.get(token,(error, res) => {
+            if(res != null)
+                memberdata = JSON.parse(res);
+            else
+                memberdata = {};
+        });
+        if(memberdata != null)
+        {
+            socket.emit('memberAcc',memberdata.Account);
+        }
     });
 
     socket.on('join', (data) => {
 
         
         redisClient.get(data.token, (err,res) => {
-            //console.log('res'+res);
-            memberdata = JSON.parse(res);
+            if(res != null)
+                memberdata = JSON.parse(res);
+            else
+                memberdata = {};
         });
 
         if(memberdata != null)
-            {
-                data.roomids.forEach(roomid => {
-                    console.log('join roomid = '+roomid)
-                    socket.join(roomid);
+        {
+            data.roomids.forEach(roomid => {
+                console.log('join roomid = '+roomid)
+                socket.join(roomid);
 
-                    var retData={
-                        name: memberdata.Account,
-                        token: data.token,
-                        roomid: roomid,
-                    }
-                    console.log('retdata'+retData);
-                    socket.broadcast.in(roomid).emit('message', {"event":'join', "data": retData});
-                });   
-            };
+                var retData={
+                    Acc: memberdata.Account,
+                    token: data.token,
+                    roomid: roomid,
+                }
+                console.log('retdata'+retData);
+                socket.broadcast.in(roomid).emit('message', {"event":'join', "data": retData});
+            });   
+        };
     });
 
     socket.on('disconnect', () => {
@@ -79,35 +82,35 @@ io.on('connection', (socket) => {
     
     socket.on("say", (chatData) => {
 
-        // var memberdata={};
         redisClient.get(chatData.token, (err,res) => {
-            console.log('res'+res);
-
-            memberdata = JSON.parse(res);
+            if(res != null)
+                memberdata = JSON.parse(res);
+            else
+                memberdata = {};
             
         });
 
-        var retData={
-            name: memberdata.Account,
-            msg: chatData.msg,
-            roomid: chatData.roomid,  
-        };
-
-        if(chatData.roomid=='all')
-            io.emit('message',{'event':'say', 'data': retData});
-        else
+        if(memberdata != null)
         {
-            //檢查member是否已經加入了room   -->須改用redis存
-            rooms=socket.adapter.rooms[chatData.roomid];
-            // JSON.stringify(rooms);
-            // console.log("rooms  "+ JSON.stringify(rooms));
-            if(rooms!=null)
+            var retData={
+                Acc: memberdata.Account,
+                msg: chatData.msg,
+                roomid: chatData.roomid,  
+            };
+
+            if(chatData.roomid=='all')
+                io.emit('message',{'event':'say', 'data': retData});
+            else
             {
-                socket['room']=chatData.roomid;
-                io.in(socket['room']).emit('message',{'event':'say', 'data': retData});
+                //檢查member是否為此room的成員
+                rooms=socket.adapter.rooms[chatData.roomid];
+                if(rooms!=null)
+                    io.in(chatData.roomid).emit('message',{'event':'say', 'data': retData});
+
+                // JSON.stringify(rooms);
+                // console.log("rooms  "+ JSON.stringify(rooms));
             }
         }
-        
     });
 
     socket.on('test', (test) => {

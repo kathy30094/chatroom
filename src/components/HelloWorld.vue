@@ -50,7 +50,7 @@
       <h2>開始聊天</h2>
       <div id="send-msg">
         <form id="send-form">
-          <span id="name">{{chatData.name}} : </span>
+          <span id="Acc">{{sessionStorage.Account}} : </span>
           <input v-model="chatData.msg" type="text" name="msg" id="msg" placeholder="說點什麼？">
           <button type='button' @click="say">送出</button>
         </form>
@@ -71,7 +71,6 @@ export default {
   data(){
     return{
       chatData: {
-        // name: '',
         msg: '',
         roomSelected: 'all',
       },
@@ -117,22 +116,19 @@ export default {
       this.status = 'disConnceted';
     },
     
-    memberName(memberAcc)
+    memberAcc(memberAcc)
     {
-      sessionStorage.setItem('name',memberAcc);
-      this.chatData.name = memberAcc;
-      
-      //console.log(memberAcc);
+      sessionStorage.setItem('Account',memberAcc);
     },
 
     message(msg)
     {
       switch(msg.event){
         case 'join':
-          console.log(msg.data.name+" join in room "+msg.data.roomid);
+          console.log(msg.data.Acc+" join in room "+msg.data.roomid);
           break;
         case 'say':
-          console.log(msg.data.name+' : '+msg.data.msg+" ----->to " + msg.data.roomid);
+          console.log(msg.data.Acc+' : '+msg.data.msg+" ----->to " + msg.data.roomid);
           break;
       };
     },
@@ -144,18 +140,7 @@ export default {
     //this.join();
   }
 }
-// socket.on("msg", function (d) {
-  //     var msgBox = document.createElement("div")
-  //         msgBox.className = "msg";
-  //     var nameBox = document.createElement("span");
-  //         nameBox.className = "name";
-  //     var name = document.createTextNode(d.name);
-  //     var msg = document.createTextNode(d.msg);
-  //     nameBox.appendChild(name);
-  //     msgBox.appendChild(nameBox);
-  //     msgBox.appendChild(msg);
-  //     content.appendChild(msgBox);
-// });
+
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
