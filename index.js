@@ -11,54 +11,58 @@ const io = require('socket.io')(server);
 
 const redis = require('redis');
 const redisClient = redis.createClient();
-
-// const pub = redis.createClient();
-// const sub = redis.createClient();
-
-var process = require('process');
-
 //test redis status
 redisClient.on('ready',function(err){
     console.log('redis ready');
 });
 
+// const pub = redis.createClient();
+// const sub = redis.createClient();
+var process = require('process');
 
 let onlineCount = 0;
 
+
+//connection
 io.on('connection', (socket) => {
+
     console.log('Hello!');  // 顯示 Hello!
     //console.log(socket);
+    
     onlineCount++;
 
     socket.on('join', (data) => {
-        socket.join(data.roomid);
 
+        //console.log('join token'+data.token);
+
+        redisClient.get(data.token, (err,res) => {
+            console.log('res'+res);
+            var memberdata = JSON.parse(res);
+            if(res != null)
+            {
+                
+                data.roomids.forEach(roomid => {
+                    console.log('join roomid = '+roomid)
+                    socket.join(roomid);
+                    var retData={
+                        name: memberdata.Account,
+                        token: data.token,
+                        roomid: roomid,
+                    }
+                    socket['room']=roomid;
+                    console.log('retdata'+retData);
+                    socket.broadcast.in(socket['room']).emit('message', {"event":'join', "data": retData});
+                });   
+            };
         //var rooms = socket.adapter.rooms;
         //console.log(rooms);
+        });
 
-
-
-        //-------------------------------error : redis get 得到的值只能在function 內使用
-        // redisClient.get(data.token, (err,res) => {
-        //     console.log(res);
-        //     var memberdata = JSON.parse(res);
-        //     var retData={
-        //         name: memberdata.Account,
-        //         token: data.token,
-        //         roomid: data.roomid,
-        //     };
-        // });
-        
-        socket['room']=data.roomid;
-        console.log(retData);
-        // console.log('roomid = '+ data.roomid);
-        socket.broadcast.in(socket['room']).emit('message', {"event":'join', "data": retData});
-
-        console.log('join');
     });
-
+    
     socket.on('isOnline',(token) => {
-        //-------------------------------error : redis get 得到的值只能在function 內使用
+
+        console.log(token);
         redisClient.get(token,(error, res) => {
             //console.log(res);
             if(res != null)
@@ -66,15 +70,9 @@ io.on('connection', (socket) => {
                 var memberdata = JSON.parse(res);
                 socket.emit('memberName',memberdata.Account);
             }
-                //socket.emit('tokenStatus',res);
         });
         
         io.emit("online", onlineCount);
-    });
-
-    socket.on("greeeet", () => {
-        io.emit("greeeet", onlineCount);
-        console.log(onlineCount);
     });
 
     socket.on('disconnect', () => {
@@ -83,10 +81,26 @@ io.on('connection', (socket) => {
         io.emit("online", onlineCount);
     });
     
-    // 修改 console.log 成 io.emit
-    socket.on("send", (msg) => {
-        // 廣播訊息到聊天室
-        io.emit("msg", msg);
+    socket.on("say", (chatData) => {
+
+        console.log('msg : '+chatData.msg);
+        redisClient.get(chatData.token, (err,res) => {
+            console.log('res'+res);
+            var memberdata = JSON.parse(res);
+            if(chatData.roomid=='all')
+            {
+                let retData={
+                    name: memberdata.Account,
+                    msg: chatData.msg,
+                    roomid: chatData.roomid,  
+                };
+                io.emit('message',{'event':'say', 'data': retData});
+            }
+            else
+            {}
+        });
+
+        
     });
 
     socket.on('test', (test) => {
@@ -130,20 +144,6 @@ io.on('connection', (socket) => {
         // });
     //
 });
-////get
-    //var roomSet = {};
-    // var roomid = 'roomA';
-    // console.log(' join roomid: '+ roomid);
-    
-    // http.createServer(function(req, res){
-    //     res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8'});
-    //     var params = url.parse(req.url, true).query;
-    //     res.write("aaa : " + params.token);
-    //     console.log('testchatroom');
-    //     console.log(params.token);
-    //     // res.end(util.inspect(url.parse(req.url, true)));
-// }).listen(5000);
-
 
 server.listen(3000, (req, res) => {
     console.log("server started. http://localhost:3000");

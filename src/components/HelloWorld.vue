@@ -16,13 +16,21 @@
         <form id="send-form">
           <span id="name">{{chatData.name}} : </span>
           <!-- <input type="text" name="name" id="name" placeholder="暱稱" value=> -->
-          <input v-modole="chatData.msg" type="text" name="msg" id="msg" placeholder="說點什麼？">
-          <button @click="say" text="送出">
+          <input v-model="chatData.msg" type="text" name="msg" id="msg" placeholder="說點什麼？">
+          <button type='button' @click="say">送出</button>
         </form>
       </div>
       <div>
         <form id="room-form"> 
-        <input v-modole="chatData.roomid" type="text" name="roomid" id="roomid" placeholder="member talk to...">
+        <input type="radio" v-model="chatData.roomSelected" value='all' @change="show"/><label>all</label>
+        <br>
+        <input type="radio" v-model="chatData.roomSelected" value='roomA' @change="show"/> <label>roomA</label> <input type="checkbox" value="roomA" v-model="roomJoin">
+        <br>
+        <input type="radio" v-model="chatData.roomSelected" value='roomB' @change="show"/> <label>roomB</label> <input type="checkbox" value="roomB" v-model="roomJoin">
+        <br>
+        <input type="radio" v-model="chatData.roomSelected" value='roomC' @change="show"/> <label>roomC</label> <input type="checkbox" value="roomC" v-model="roomJoin">
+        <button type='button' @click="join">加入群組</button>
+        <!-- <input v-modole="chatData.roomid" type="text" name="roomid" id="roomid" placeholder="member talk to..."> -->
       </div>
     </div>
     <!-- <h1>{{ msg }}</h1>
@@ -42,42 +50,35 @@ export default {
       chatData: {
         // name: '',
         msg: '',
-        token: sessionStorage.token,
-        roomid: 'roomA',
+        roomSelected: 'all',
       },
+      roomJoin: [],
       peopleOnline: '',
       status: '',
       msgs: [],
-      token: sessionStorage.token,
-    }
-    
+    };
   },
   methods: {
   
     isOnline(){
-      this.$socket.emit('isOnline',this.token);
+      this.$socket.emit('isOnline',sessionStorage.token);
     },
+
     say(){
-      //call backend
-      console.log('say');
       let chatData = {
-        // name: this.chatData.name,
         msg: this.chatData.msg,
         token: sessionStorage.token,
-        roomid: this.chatData.roomid,
+        roomid: this.chatData.roomSelected,
       };
-      this.$socket.emit('say', this.chatData);
-      this.chatData.msg = '';
+      this.$socket.emit('say', chatData);
     },
 
     join(){
-      let chatData = {
-        // name: this.chatData.name,
-        msg: this.chatData.msg,
+      let joinData = {
         token: sessionStorage.token,
-        roomid: this.chatData.roomid,
+        roomids: this.roomJoin,
       };
-      this.$socket.emit('join',this.chatData);
+      this.$socket.emit('join', joinData);
       console.log('joined');
     },
   },
@@ -85,27 +86,17 @@ export default {
   sockets: {
     connect(){
       this.status = 'Connceted';
-      console.log('aaaa')
-    },
-
-    online(count){
-      this.peopleOnline = count;
-      console.log(count);
+      console.log('aaaa');
     },
 
     disconnect(){
       this.status = 'disConnceted';
     },
-
-    tokenStatus(memberData)
-    {
-      console.log(memberData);
-    },
     
     memberName(memberAcc)
     {
       sessionStorage.setItem('name',memberAcc);
-      this.chatData.name = sessionStorage.name;
+      this.chatData.name = memberAcc;
       
       //console.log(memberAcc);
     },
@@ -118,17 +109,22 @@ export default {
           console.log(msg.data.name);
           console.log(msg.data.name+" join in room "+msg.data.roomid);
           break;
-      }
+        case 'say':
+          console.log(msg.data.name+' : '+msg.data.msg+" ----->to " + msg.data.roomid);
+          break;
+      };
+
       // if(msg.data.username!==sessionStorage.userAcc) {
       //   console.log(msg.data.username + '说: ' + msg.data.text);
       //   showMessage(msg.data);
       // }
     },
   },
+
   mounted() {
     sessionStorage.setItem('token',window.name);
     this.isOnline();
-    this.join();
+    //this.join();
   }
 }
 // socket.on("msg", function (d) {
