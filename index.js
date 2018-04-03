@@ -9,8 +9,11 @@ app.get('/', function(req, res){
 const server = require('http').Server(app);
 const io = require('socket.io')(server);
 
-const redis = require('redis');
-const redisClient = redis.createClient();
+// const redis = require('redis');
+// const redisClient = redis.createClient();
+const asyncRedis = require("async-redis");
+const redisClient = asyncRedis.createClient();
+
 //test redis status
 redisClient.on('ready',function(err){
     console.log('redis ready');
@@ -31,64 +34,68 @@ io.on('connection', (socket) => {
     onlineCount++;
     
     //一登入就進來登記
-    socket.on('isOnline',(token) => {
+    socket.on('isOnline',async (token) => {
         
         console.log(token);
+       
+        var res = await redisClient.get(token);
 
-        redisClient.get(token,(error, res) => {
-            if(res != null)
-                memberdata = JSON.parse(res);
-            else
-                memberdata = {};
-        });
+        if(res != null)
+            memberdata = JSON.parse(res);
+        else
+            memberdata = {};
+        
         if(memberdata != null)
         {
             socket.emit('memberAcc',memberdata.Account);
+            redisClient.set(memberdata.Account,socket.id);
+            console.log("member Acc " + memberdata.Account+', member sockeet id '+ socket.id+" save to redis");
+            memberdata = {};
         }
     });
 
-    socket.on('join', (data) => {
+    socket.on('join', async (data) => {
 
         
-        redisClient.get(data.token, (err,res) => {
-            if(res != null)
-                memberdata = JSON.parse(res);
-            else
-                memberdata = {};
-        });
-
+        var res = await redisClient.get(data.token);
+        if(res != null)
+            memberdata = JSON.parse(res);
+        else
+            memberdata = {};
+            
         if(memberdata != null)
         {
             data.roomids.forEach(roomid => {
-                console.log('join roomid = '+roomid)
-                socket.join(roomid);
 
-                var retData={
-                    Acc: memberdata.Account,
-                    token: data.token,
-                    roomid: roomid,
-                }
-                console.log('retdata'+retData);
-                socket.broadcast.in(roomid).emit('message', {"event":'join', "data": retData});
+                //檢查member是否為此room的成員
+                rooms=socket.adapter.rooms[roomid];
+                // if(rooms==null)
+                // {
+                    socket.join(roomid);
+                    console.log('join roomid = '+roomid)
+
+                    var retData={
+                        Acc: memberdata.Account,
+                        token: data.token,
+                        roomid: roomid,
+                    }
+                    console.log(retData.Acc);
+
+                    socket.broadcast.to(roomid).emit('message', {"event":'join', "data": retData});
+                    console.log('retdata'+retData);
+                    
+                // }
             });   
         };
     });
-
-    socket.on('disconnect', () => {
-        // 有人離線了，扣人
-        onlineCount = (onlineCount < 0) ? 0 : onlineCount-=1;
-        io.emit("online", onlineCount);
-    });
     
-    socket.on("say", (chatData) => {
+    socket.on("say", async (chatData) => {
 
-        redisClient.get(chatData.token, (err,res) => {
-            if(res != null)
-                memberdata = JSON.parse(res);
-            else
-                memberdata = {};
-            
-        });
+        var res = await redisClient.get(chatData.token);
+        if(res != null)
+            memberdata = JSON.parse(res);
+        else
+            memberdata = {};
 
         if(memberdata != null)
         {
@@ -103,14 +110,20 @@ io.on('connection', (socket) => {
             else
             {
                 //檢查member是否為此room的成員
-                rooms=socket.adapter.rooms[chatData.roomid];
-                if(rooms!=null)
+                // rooms=socket.adapter.rooms[chatData.roomid];
+                // console.log(rooms);
+                //if(rooms!=null)
                     io.in(chatData.roomid).emit('message',{'event':'say', 'data': retData});
-
+                
                 // JSON.stringify(rooms);
                 // console.log("rooms  "+ JSON.stringify(rooms));
             }
         }
+    });
+    socket.on('disconnect', () => {
+        // 有人離線了，扣人
+        onlineCount = (onlineCount < 0) ? 0 : onlineCount-=1;
+        io.emit("online", onlineCount);
     });
 
     socket.on('test', (test) => {

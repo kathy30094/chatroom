@@ -50,7 +50,7 @@
       <h2>開始聊天</h2>
       <div id="send-msg">
         <form id="send-form">
-          <span id="Acc">{{sessionStorage.Account}} : </span>
+          <!-- <span id="Acc">{{sessionStorage.Account}} : </span> -->
           <input v-model="chatData.msg" type="text" name="msg" id="msg" placeholder="說點什麼？">
           <button type='button' @click="say">送出</button>
         </form>
