@@ -23,24 +23,24 @@
         <table>
           <tr>
             <td><label>all</label></td>
-            <td><input type="radio" v-model="chatData.roomSelected" value='all' /></td>
+            <td><input type="radio" v-model="chatData.chatSelect" value='all' name="chose"/></td>
           </tr>
           <tr>
             <td><label>roomA</label></td>
-            <td><input type="radio" v-model="chatData.roomSelected" value='roomA' /></td>
+            <td><input type="radio" v-model="chatData.chatSelect" value='roomA' name="chose"/></td>
           </tr>
           <tr>
             <td><label>roomB</label></td>
-            <td><input type="radio" v-model="chatData.roomSelected" value='roomB' /></td>
+            <td><input type="radio" v-model="chatData.chatSelect" value='roomB' name="chose"/></td>
           </tr>
           <tr>
             <td><label>roomC</label></td>
-            <td><input type="radio" v-model="chatData.roomSelected" value='roomC' /></td>
+            <td><input type="radio" v-model="chatData.chatSelect" value='roomC' name="chose"/></td>
           </tr>
 
-          <tr v-for="memberAcc in memberList">
-            <td>{{member}}</td>
-            <td><input type="radio" v-model="chatData.roomSelected" value={{memberAcc}} /></td>
+          <tr v-for="(memberAcc) in memberlist">
+            <td>{{memberAcc}}</td>
+            <td><input type="radio" v-model="chatData.chatSelect" :value='memberAcc' name="chose"/></td>
           </tr>
         </table>
       </div>
@@ -72,7 +72,7 @@ export default {
     return{
       chatData: {
         msg: '',
-        roomSelected: 'all',
+        chatSelect: 'all',
       },
       roomJoin: [],
       peopleOnline: '',
@@ -91,7 +91,7 @@ export default {
       let chatData = {
         msg: this.chatData.msg,
         token: sessionStorage.token,
-        roomid: this.chatData.roomSelected,
+        chatSelect: this.chatData.chatSelect,
       };
       this.$socket.emit('say', chatData);
     },
@@ -109,6 +109,7 @@ export default {
   sockets: {
     connect(){
       this.status = 'Connceted';
+      this.$socket.emit('isOnline',sessionStorage.token);
       // console.log('aaaa');
     },
 
@@ -128,16 +129,20 @@ export default {
           console.log(msg.data.Acc+" join in room "+msg.data.roomid);
           break;
         case 'say':
-          console.log(msg.data.Acc+' : '+msg.data.msg+" ----->to " + msg.data.roomid);
+          console.log(msg.data.Acc+' : '+msg.data.msg+" ----->to " + msg.data.chatSelect);
           break;
       };
+    },
+    showAllMember(memberOnlineArray)
+    {
+      this.memberlist = memberOnlineArray;
+      console.log(memberOnlineArray);
     },
   },
 
   mounted() {
     sessionStorage.setItem('token',window.name);
-    this.isOnline();
-    //this.join();
+    // this.isOnline();
   }
 }
 
