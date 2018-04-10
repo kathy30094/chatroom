@@ -9,13 +9,6 @@ app.get('/', function(req, res){
 const server = require('http').Server(app);
 const io = require('socket.io')(server);
 
-// const redis = require('redis');
-// const promise = require('bluebird');
-// promise.promisifyAll(redis.RedisClient.prototype);
-// promise.promisifyAll(redis.Multi.prototype);
-// // bluebird.promisifyAll(reids.Multi.prototype);
-// // const redisClient = redis.createClient();
-
 const _ = require('underscore');
 
 const asyncRedis = require("async-redis");
@@ -28,11 +21,11 @@ redisClient.on('ready',function(err){
 
 var memberOnline = {};
 var memberOnlineArray = [];
-
-
+var memberdata = {};
 //connection
 io.on('connection', (socket) => {
-    var memberdata = {};
+
+    
 
     console.log('Hello!');  // 顯示 Hello!
     
@@ -41,8 +34,7 @@ io.on('connection', (socket) => {
 
         console.log(token);
         var res = await redisClient.get(token);
-        
-        console.log(res);
+
         if(res != null)
             memberdata = JSON.parse(res);
         else
@@ -50,17 +42,17 @@ io.on('connection', (socket) => {
 
         if(memberdata != null)
         {
-            socket.emit('memberAcc',memberdata.Account);
+            socket.emit('showSelfAcc',memberdata.Account);
 
             await redisClient.set(memberdata.Account, socket.id);
 
             memberOnline[memberdata.Account] = socket.id;
             memberOnlineArray = Object.keys(memberOnline);
 
-            console.log(memberOnlineArray);
+            console.log('memberOnlineArray : ' + memberOnlineArray);
             io.emit('showAllMember',memberOnlineArray);
             
-            console.log("member Acc " + memberdata.Account+', member sockeet id '+ socket.id);
+            console.log("member Acc " + memberdata.Account+', member sockeet id '+ socket.id + " is online");
         }
     });
 
@@ -105,7 +97,9 @@ io.on('connection', (socket) => {
             memberdata = JSON.parse(res);
         else
             memberdata = {};
+
         var rooms = ['roomA','roomB','roomC'];
+
         if(memberdata != null)
         {
             //ret
@@ -115,13 +109,13 @@ io.on('connection', (socket) => {
                 chatSelect: chatData.chatSelect,  
             };
 
+            //對所有人
             if(chatData.chatSelect=='all')
                 io.emit('message',{'event':'say', 'data': retData});
+            //對room
             else if(rooms.includes(chatData.chatSelect))
             {
-                //需檢查member是否為此room的成員
-
-                var roomid = chatData.chatSelect;
+                var roomid = chatData.chatSelect; //縮寫
                 // console.log(socket.adapter.rooms[roomid]);
                 if(typeof socket.adapter.rooms[roomid]!='undefined')
                 {
@@ -129,10 +123,13 @@ io.on('connection', (socket) => {
                     var peopleInRoom=Object.keys(socket.adapter.rooms[roomid].sockets);
                     // console.log('test1 : '+Object.keys(socket.adapter.rooms[roomid].sockets));
                     // console.log('peopleInRoom : '+ peopleInRoom);
+
+                    //檢查自己有沒有在裡面
                     if(peopleInRoom.includes(socket.id))
                         io.in(roomid).emit('message',{'event':'say', 'data': retData});
                 }
             }
+            //私聊
             else
             {
                 var socketIDto = memberOnline[chatData.chatSelect];
