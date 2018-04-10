@@ -9,8 +9,11 @@
       <div class="side-nav">
         <h2>加入房間</h2>
         <div id='join room'>
+          <br>
           <label>roomA</label> <input type="checkbox" value="roomA" v-model="roomJoin">
+          <br>
           <label>roomB</label> <input type="checkbox" value="roomB" v-model="roomJoin">
+          <br>
           <label>roomC</label> <input type="checkbox" value="roomC" v-model="roomJoin">
           <br>
           <button type='button' @click="join">加入</button>
@@ -115,6 +118,12 @@ export default {
       this.$socket.emit('isOnline',sessionStorage.token);
     },
     
+    notLogined()
+    {
+      alert('請先登入！');
+      window.location.href = 'http://192.168.4.114';
+    },
+
     showSelfAcc(memberAcc)
     {
       sessionStorage.setItem('Account',memberAcc);
@@ -126,7 +135,7 @@ export default {
       this.memberlist = memberOnlineArray;
       this.peopleOnline = memberOnlineArray.length;
     },
-
+    
     message(msg)
     {
       switch(msg.event)
@@ -136,8 +145,8 @@ export default {
           this.msgs.push(msg.data.Acc+" join in room "+msg.data.roomid);
           break;
         case 'say':
-          console.log(msg.data.Acc+' : '+msg.data.msg+" ----->to " + msg.data.chatSelect);
-          this.msgs.push(msg.data.Acc+' : '+msg.data.msg+" ----->to " + msg.data.chatSelect);
+          console.log(msg.data.Acc+' : '+msg.data.msg+" -----> to  " + msg.data.chatSelect);
+          this.msgs.push(msg.data.Acc+' : '+msg.data.msg+"  -----> to " + msg.data.chatSelect);
           break;
       };
     },

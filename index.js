@@ -12,20 +12,25 @@ const io = require('socket.io')(server);
 const _ = require('underscore');
 
 const asyncRedis = require("async-redis");
-const redisClient = asyncRedis.createClient();
+const redisClient_token = asyncRedis.createClient();
+redisClient_token.select(0);
+
+const redisClient_onlineAcc = asyncRedis.createClient();
+redisClient_onlineAcc.select(2);
+
+const redisClient_onlineSocket = asyncRedis.createClient();
+redisClient_onlineSocket.select(3);
 
 // test redis status
-redisClient.on('ready',function(err){
+redisClient_token.on('ready',function(err){
     console.log('redis ready');
 });
 
-var memberOnline = {};
+//var memberOnline = {};
 var memberOnlineArray = [];
 var memberdata = {};
 //connection
 io.on('connection', (socket) => {
-
-    
 
     console.log('Hello!');  // 顯示 Hello!
     
@@ -33,32 +38,43 @@ io.on('connection', (socket) => {
     socket.on('isOnline',async (token) => {
 
         console.log(token);
-        var res = await redisClient.get(token);
+        var res = await redisClient_token.get(token);
 
         if(res != null)
-            memberdata = JSON.parse(res);
-        else
-            memberdata = {};
-
-        if(memberdata != null)
         {
+            memberdata = JSON.parse(res);
+
             socket.emit('showSelfAcc',memberdata.Account);
 
-            await redisClient.set(memberdata.Account, socket.id);
+            if(typeof memberdata.Account != 'undifined')
+            {
+                //上線的人存到redis
+                await redisClient_onlineAcc.set(memberdata.Account,socket.id);
+                await redisClient_onlineSocket.set(socket.id, memberdata.Account);
+                memberOnlineArray = await redisClient_onlineAcc.keys('*');
 
-            memberOnline[memberdata.Account] = socket.id;
-            memberOnlineArray = Object.keys(memberOnline);
+                //上線的人存到local array
+                // memberOnline[memberdata.Account] = socket.id;  
+                // memberOnlineArray = Object.keys(memberOnline);
 
-            console.log('memberOnlineArray : ' + memberOnlineArray);
-            io.emit('showAllMember',memberOnlineArray);
-            
-            console.log("member Acc " + memberdata.Account+', member sockeet id '+ socket.id + " is online");
+                console.log('memberOnlineArray : ' + memberOnlineArray);
+
+                io.emit('showAllMember',memberOnlineArray);
+                
+                console.log("member Acc " + memberdata.Account+', member sockeet id '+ socket.id + " is online");
+            }
+        }  
+        else
+        {
+            memberdata = {};
+            socket.emit('notLogined');
         }
+            
     });
 
     socket.on('join', async (data) => {
         
-        var res = await redisClient.get(data.token);
+        var res = await redisClient_token.get(data.token);
 
         if(res != null)
             memberdata = JSON.parse(res);
@@ -92,7 +108,7 @@ io.on('connection', (socket) => {
     
     socket.on("say", async (chatData) => {
 
-        var res = await redisClient.get(chatData.token);
+        var res = await redisClient_token.get(chatData.token);
         if(res != null)
             memberdata = JSON.parse(res);
         else
@@ -116,13 +132,11 @@ io.on('connection', (socket) => {
             else if(rooms.includes(chatData.chatSelect))
             {
                 var roomid = chatData.chatSelect; //縮寫
-                // console.log(socket.adapter.rooms[roomid]);
+
                 if(typeof socket.adapter.rooms[roomid]!='undefined')
                 {
                     //找到已經在room裡的成員
                     var peopleInRoom=Object.keys(socket.adapter.rooms[roomid].sockets);
-                    // console.log('test1 : '+Object.keys(socket.adapter.rooms[roomid].sockets));
-                    // console.log('peopleInRoom : '+ peopleInRoom);
 
                     //檢查自己有沒有在裡面
                     if(peopleInRoom.includes(socket.id))
@@ -132,7 +146,11 @@ io.on('connection', (socket) => {
             //私聊
             else
             {
-                var socketIDto = memberOnline[chatData.chatSelect];
+                //redis
+                var socketIDto = await redisClient_onlineAcc.get(chatData.chatSelect);
+
+                //local array
+                // var socketIDto = memberOnline[chatData.chatSelect];
 
                 socket.emit('message',{'event':'say', 'data': retData});
                 socket.to(socketIDto).emit('message',{'event':'say', 'data': retData});
@@ -140,15 +158,21 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
         // 有人離線了
-        
-        leaveAcc = _.invert(memberOnline)[socket.id];
+        //redids
+        var AccLeave = await redisClient_onlineSocket.get(socket.id);
+        await redisClient_onlineSocket.del(socket.id);
+        await redisClient_onlineAcc.del(AccLeave);
 
-        delete memberOnline[leaveAcc];
-        
-        memberOnlineArray = Object.keys(memberOnline);
-        console.log('after leave : '+ memberOnlineArray);
+        var memberOnlineArray = await redisClient_onlineAcc.keys('*');
+        console.log('AccList after Leave : '+memberOnlineArray);
+
+        //local array
+        // leaveAcc = _.invert(memberOnline)[socket.id];
+        // delete memberOnline[leaveAcc];
+        // memberOnlineArray = Object.keys(memberOnline);
+        // console.log('after leave : '+ memberOnlineArray);
 
         io.emit('showAllMember',memberOnlineArray);
     });
