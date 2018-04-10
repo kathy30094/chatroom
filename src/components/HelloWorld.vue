@@ -56,12 +56,12 @@
             {{msg}}
           </li>
         </ul>
-        <form id="send-form">
+        <dev id="send-form">
           <span id="Acc">{{Acc}} </span>
           <span class="dot">: </span>
-          <input v-model="chatData.msg" type="text" name="msg" id="msg" placeholder="說點什麼？">
+          <input v-model="chatData.msg" type="text" name="msg" id="msg" placeholder="說點什麼？" @keyup.enter.prevent="say">
           <button type='button' @click="say">送出</button>
-        </form>
+        </dev>
       </div>
     </div>
   </div>
@@ -146,7 +146,7 @@ export default {
           break;
         case 'say':
           console.log(msg.data.Acc+' : '+msg.data.msg+" -----> to  " + msg.data.chatSelect);
-          this.msgs.push(msg.data.Acc+' : '+msg.data.msg+"  -----> to " + msg.data.chatSelect);
+          this.msgs.push(msg.data.Acc+" --> " + msg.data.chatSelect+' : '+msg.data.msg);
           break;
       };
     },
@@ -170,6 +170,7 @@ export default {
   }
   #container {
     width: 80%;
+    height: 90%;
   }
 
   .side-nav {
@@ -192,6 +193,7 @@ export default {
     height: 85%;
     padding-left: 0;
     overflow: auto;
+    word-break: break-all;
   }
 
   li {

@@ -11,7 +11,9 @@ const io = require('socket.io')(server);
 
 const _ = require('underscore');
 
+//redis settings
 const asyncRedis = require("async-redis");
+
 const redisClient_token = asyncRedis.createClient();
 redisClient_token.select(0);
 
@@ -176,7 +178,6 @@ io.on('connection', (socket) => {
 
         io.emit('showAllMember',memberOnlineArray);
     });
-
 });
 
 server.listen(3000, (req, res) => {
