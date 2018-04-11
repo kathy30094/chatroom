@@ -26,12 +26,8 @@ redisClient_onlineSocket.select(3);
 const redis = require('redis');
 const redisAdapter  = require('socket.io-redis');
 const pub = redis.createClient();
-pub.select(4);
 const sub = redis.createClient();
-sub.select(4);
 io.adapter(redisAdapter({pubClient: pub, subClient: sub}));
-
-
 
 pub.on('ready',function(err){
     console.log('redis ready');
