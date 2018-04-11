@@ -56,12 +56,12 @@
             {{msg}}
           </li>
         </ul>
-        <dev id="send-form">
+        <div id="send-form">
           <span id="Acc">{{Acc}} </span>
           <span class="dot">: </span>
-          <input v-model="chatData.msg" type="text" name="msg" id="msg" placeholder="說點什麼？" @keyup.enter.prevent="say">
+          <input v-model="chatData.msg" name="msg" id="msg" placeholder="說點什麼？" @keyup.13="say">
           <button type='button' @click="say">送出</button>
-        </dev>
+        </div>
       </div>
     </div>
   </div>
@@ -98,6 +98,10 @@ export default {
         chatSelect: this.chatData.chatSelect,
       };
       this.$socket.emit('say', chatData);
+      var chatbox = document.getElementsByClassName('chat-box');
+      setTimeout(() => {
+        chatbox[0].scrollTop = 9999999;
+      }, 0);
     },
 
     join()
@@ -120,8 +124,8 @@ export default {
     
     notLogined()
     {
-      alert('請先登入！');
-      window.location.href = 'http://192.168.4.114';
+      // alert('請先登入！');
+      // window.location.href = 'http://192.168.4.114';
     },
 
     showSelfAcc(memberAcc)
@@ -193,7 +197,7 @@ export default {
     height: 85%;
     padding-left: 0;
     overflow: auto;
-    word-break: break-all;
+ 
   }
 
   li {

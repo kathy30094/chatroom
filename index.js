@@ -23,8 +23,17 @@ redisClient_onlineAcc.select(2);
 const redisClient_onlineSocket = asyncRedis.createClient();
 redisClient_onlineSocket.select(3);
 
-// test redis status
-redisClient_token.on('ready',function(err){
+const redis = require('redis');
+const redisAdapter  = require('socket.io-redis');
+const pub = redis.createClient();
+pub.select(4);
+const sub = redis.createClient();
+sub.select(4);
+io.adapter(redisAdapter({pubClient: pub, subClient: sub}));
+
+
+
+pub.on('ready',function(err){
     console.log('redis ready');
 });
 
@@ -39,6 +48,10 @@ io.on('connection', (socket) => {
     //一登入就進來登記
     socket.on('isOnline',async (token) => {
 
+        io.of('/').adapter.clients((err,clients) => {
+            console.log('clients :   '+clients);
+        });
+        
         console.log(token);
         var res = await redisClient_token.get(token);
 
