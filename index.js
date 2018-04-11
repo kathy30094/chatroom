@@ -185,27 +185,40 @@ io.on('connection', (socket) => {
         // 有人離線了
         //redids
         var AccLeave = await redisClient_onlineSocket.get(socket.id);
-        await redisClient_onlineSocket.del(socket.id);
-        //單處登入 單socket
-        //await redisClient_onlineAcc.del(AccLeave);
-        AccSocketsArray = await redisClient_onlineAcc.get(AccLeave);
-        if(AccSocketsArray.length == 1 || AccSocketsArray.length == 0)
+
+        //有登入，儲存過socket id 到 redis
+        if(AccLeave != null)
         {
-            await redisClient_onlineAcc.del(AccLeave);
+            await redisClient_onlineSocket.del(socket.id);
+
+            //單處登入 單socket
+            //await redisClient_onlineAcc.del(AccLeave);
+
+            memberSockets = await redisClient_onlineAcc.get(AccLeave);
+            if(memberSockets.length == 1 || memberSockets.length == 0)
+            {
+                await redisClient_onlineAcc.del(AccLeave);
+                console.log('the client leave all chat')
+            }
+            else
+            {
+                //拿掉指定的socketid from array
+                memberSockets = _.without(memberSockets, socket.id);
+
+                await redisClient_onlineAcc.set(AccLeave, memberSockets);
+                console.log("the client socket left : "+ memberSockets);
+            }
+
+            var memberOnlineArray = await redisClient_onlineAcc.keys('*');
+            console.log('AccList after Leave : '+memberOnlineArray);
+
+            io.emit('showAllMember',memberOnlineArray);
+
+            io.of('/').adapter.clients((err,clients) => {
+                console.log('clients :   '+clients);
+            });
         }
-        else
-        {
-            //拿掉指定的socketid from array
-        }
-
-        var memberOnlineArray = await redisClient_onlineAcc.keys('*');
-        console.log('AccList after Leave : '+memberOnlineArray);
-
-        io.emit('showAllMember',memberOnlineArray);
-
-        io.of('/').adapter.clients((err,clients) => {
-            console.log('clients :   '+clients);
-        });
+        
     });
 });
 
