@@ -28,7 +28,7 @@
               <td><label>all</label></td>
               <td><input type="radio" v-model="chatData.chatSelect" value='all' name="chose"/></td>
             </tr>
-            <tr>
+            <!-- <tr>
               <td><label>roomA</label></td>
               <td><input type="radio" v-model="chatData.chatSelect" value='roomA' name="chose"/></td>
             </tr>
@@ -39,7 +39,7 @@
             <tr>
               <td><label>roomC</label></td>
               <td><input type="radio" v-model="chatData.chatSelect" value='roomC' name="chose"/></td>
-            </tr>
+            </tr> -->
 
             <tr v-for="(memberAcc) in memberlist">
               <td>{{memberAcc}}</td>
@@ -87,14 +87,14 @@ export default {
   
     isOnline()
     {
-      this.$socket.emit('isOnline',sessionStorage.token);
+      this.$socket.emit('isOnline',localStorage.token);
     },
 
     say()
     {
       let chatData = {
         msg: this.chatData.msg,
-        token: sessionStorage.token,
+        token: localStorage.token,
         chatSelect: this.chatData.chatSelect,
       };
       this.$socket.emit('say', chatData);
@@ -107,7 +107,8 @@ export default {
     join()
     {
       let joinData = {
-        token: sessionStorage.token,
+        token: localStorage.token,
+        
         roomids: this.roomJoin,
       };
       this.$socket.emit('join', joinData);
@@ -119,7 +120,7 @@ export default {
     connect()
     {
       this.status = 'Connceted';
-      this.$socket.emit('isOnline',sessionStorage.token);
+      this.$socket.emit('isOnline',localStorage.token);
     },
     
     notLogined()
@@ -130,7 +131,7 @@ export default {
 
     showSelfAcc(memberAcc)
     {
-      sessionStorage.setItem('Account',memberAcc);
+      localStorage.setItem('Account',memberAcc);
       this.Acc = memberAcc;
     },
 
@@ -161,7 +162,15 @@ export default {
   },
 
   mounted() {
-    sessionStorage.setItem('token',window.name);
+    var theToken = window.name;
+    if(localStorage.token == null || theToken != "")
+      localStorage.setItem('token',theToken);
+    console.log(typeof theToken);
+    // else
+    // {
+    //   if(window.name != null)
+    //     localStorage.setItem('token',window.name);
+    // }
   }
 }
 
