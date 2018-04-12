@@ -61,7 +61,7 @@ io.on('connection', (socket) => {
         console.log(token);
 
         var res = await redisClient_token.get(token);
-        console.log("res :    "+res);
+        //console.log("res :    "+res);
 
         if(res != null)
         {
@@ -237,8 +237,30 @@ io.on('connection', (socket) => {
 
             if(memberSockets.length == 1 || memberSockets.length == 0)
             {
+                allRooms = Object.values(await redisClient_room.keys('*'));
+                console.log('allRoom : '+typeof allRooms+allRooms+allRooms.length);
+
                 await redisClient_onlineAcc.del(AccLeave);
-                console.log(AccLeave+' leave all chat')
+                console.log(AccLeave+' leave all chat');
+
+                for(let i = 0;i<allRooms.length;i++)
+                {
+                    console.log('allRooms[i]'+allRooms[i]);
+                    membersInRoom = JSON.parse(await redisClient_room.get(allRooms[i]));
+                    console.log('membersinroom : '+membersInRoom);
+                    if(membersInRoom.indexOf(AccLeave)!=-1)
+                    {
+                        console.log('index before; '+membersInRoom.indexOf(AccLeave));
+                        membersInRoom.splice(membersInRoom.indexOf(AccLeave),1);
+                        console.log('index ; '+membersInRoom.indexOf(AccLeave));
+                        if(membersInRoom.length==0)
+                            await redisClient_room.del(allRooms[i]);
+                        else
+                            await redisClient_room.set(allRooms[i], JSON.stringify(membersInRoom));
+                        console.log('member in room '+allRooms[i]+' :  '+membersInRoom)
+                    }
+                    
+                }
             }
             else
             {

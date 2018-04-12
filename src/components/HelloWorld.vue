@@ -166,6 +166,7 @@ export default {
     if(localStorage.token == null || theToken != "")
       localStorage.setItem('token',theToken);
     console.log(typeof theToken);
+    window.name = "";
     // else
     // {
     //   if(window.name != null)
