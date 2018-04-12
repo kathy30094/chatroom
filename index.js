@@ -192,16 +192,14 @@ io.on('connection', (socket) => {
             ////////////////////////////////////////////////////////對room       待改  
             else if(rooms.includes(chatData.chatSelect))
             {
-                var roomid = chatData.chatSelect; //縮寫
-
-                if(typeof socket.adapter.rooms[roomid]!='undefined')
+                if(typeof socket.adapter.rooms[chatData.chatSelect]!='undefined')
                 {
                     //找到已經在room裡的成員
-                    var peopleInRoom=Object.keys(socket.adapter.rooms[roomid].sockets);
+                    var peopleInRoom=Object.keys(socket.adapter.rooms[chatData.chatSelect].sockets);
 
                     //檢查自己有沒有在裡面
                     if(peopleInRoom.includes(socket.id))
-                        io.in(roomid).emit('message',{'event':'say', 'data': retData});
+                        io.in(chatData.chatSelect).emit('message',{'event':'say', 'data': retData});
                 }
             }
             //私聊
@@ -212,6 +210,7 @@ io.on('connection', (socket) => {
 
                 //給自己
                 socket.emit('message',{'event':'say', 'data': retData});
+
                 //給對象
                 socketsIdChatTo.forEach(socketIdto => {
                     socket.to(socketIdto).emit('message',{'event':'say', 'data': retData});
@@ -235,31 +234,36 @@ io.on('connection', (socket) => {
 
             memberSockets = JSON.parse(await redisClient_onlineAcc.get(AccLeave));
 
-            if(memberSockets.length == 1 || memberSockets.length == 0)
+            //如果 某Acc 關閉最後一個分頁，要把Acc從上線中的名單移除，也從各個room中移除
+            if(memberSockets.length <= 1)
             {
-                allRooms = Object.values(await redisClient_room.keys('*'));
-                console.log('allRoom : '+typeof allRooms+allRooms+allRooms.length);
-
+                //從上線名單中移除
                 await redisClient_onlineAcc.del(AccLeave);
                 console.log(AccLeave+' leave all chat');
 
+                //找出所有已存在的房間，去每個房間裡看
+                allRooms = Object.values(await redisClient_room.keys('*'));
+                console.log('allRoom : '+typeof allRooms+allRooms+allRooms.length);
+
+                //巡每個room，看Acc有沒有在裡面
                 for(let i = 0;i<allRooms.length;i++)
                 {
-                    console.log('allRooms[i]'+allRooms[i]);
                     membersInRoom = JSON.parse(await redisClient_room.get(allRooms[i]));
                     console.log('membersinroom : '+membersInRoom);
+
+                    //如果AccLeave有在room裡
                     if(membersInRoom.indexOf(AccLeave)!=-1)
                     {
-                        console.log('index before; '+membersInRoom.indexOf(AccLeave));
+                        //移除
                         membersInRoom.splice(membersInRoom.indexOf(AccLeave),1);
-                        console.log('index ; '+membersInRoom.indexOf(AccLeave));
+                        
                         if(membersInRoom.length==0)
-                            await redisClient_room.del(allRooms[i]);
+                            await redisClient_room.del(allRooms[i]); //如果移除了Acc之後，room裡面就沒人了，刪除沒人的room
                         else
                             await redisClient_room.set(allRooms[i], JSON.stringify(membersInRoom));
+
                         console.log('member in room '+allRooms[i]+' :  '+membersInRoom)
                     }
-                    
                 }
             }
             else
@@ -271,6 +275,7 @@ io.on('connection', (socket) => {
                 console.log(AccLeave+" socket left : "+ memberSockets);
             }
 
+            //在線上的所有member
             var memberOnlineArray = await redisClient_onlineAcc.keys('*');
             console.log('AccList after Leave : '+memberOnlineArray);
 
@@ -282,5 +287,4 @@ io.on('connection', (socket) => {
 
 server.listen(3000, (req, res) => {
     console.log("server started. http://localhost:3000");
-
 });
