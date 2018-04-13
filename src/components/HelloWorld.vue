@@ -144,10 +144,20 @@ export default {
           this.msgs.push(msg.data.Acc+" join in room "+msg.data.roomid);
           break;
         case 'say':
-          console.log(msg.data.Acc+' : '+msg.data.msg+" -----> to  " + msg.data.chatSelect);
+          console.log(msg.data.Acc+" --> " + msg.data.chatSelect+' : '+msg.data.msg);
           this.msgs.push(msg.data.Acc+" --> " + msg.data.chatSelect+' : '+msg.data.msg);
           break;
+        case 'getAnnounce':
+          msg.data.forEach(announce => {
+            this.msgs.push(announce);
+            console.log(announce);
+          });
+          break;
       };
+      var chatbox = document.getElementsByClassName('chat-box');
+      setTimeout(() => {
+        chatbox[0].scrollTop = 9999999;
+      }, 0);
     },
 
     disconnect(){
