@@ -29,18 +29,6 @@
               <td><label>{{roomBelong}}</label></td>
               <td><input type="radio" v-model="chatData.chatSelect" :value='roomBelong' name="chose"/></td>
             </tr>
-            <!-- <tr>
-              <td><label>roomA</label></td>
-              <td><input type="radio" v-model="chatData.chatSelect" value='roomA' name="chose"/></td>
-            </tr>
-            <tr>
-              <td><label>roomB</label></td>
-              <td><input type="radio" v-model="chatData.chatSelect" value='roomB' name="chose"/></td>
-            </tr>
-            <tr>
-              <td><label>roomC</label></td>
-              <td><input type="radio" v-model="chatData.chatSelect" value='roomC' name="chose"/></td>
-            </tr> -->
 
             <tr v-for="(memberAcc) in memberlist">
               <td>{{memberAcc}}</td>
@@ -107,16 +95,16 @@ export default {
     },
 
     //////////////////////////待改
-    join()
-    {
-      let joinData = {
-        token: localStorage.token,
+    // join()
+    // {
+    //   let joinData = {
+    //     token: localStorage.token,
         
-        roomids: this.roomJoin,
-      };
-      this.$socket.emit('join', joinData);
-      console.log('joined');
-    },
+    //     roomids: this.roomJoin,
+    //   };
+    //   this.$socket.emit('join', joinData);
+    //   console.log('joined');
+    // },
   },
 
   sockets: {

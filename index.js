@@ -141,36 +141,36 @@ io.on('connection', (socket) => {
     // //      待改
     // socket.on('join', async (data) => {
         
-    //     var res = await redisClient_token.get(data.token);
+        //     var res = await redisClient_token.get(data.token);
 
-    //     if(res != null)
-    //         memberdata = JSON.parse(res);
-    //     else
-    //         memberdata = {};
-            
-    //     if(memberdata != null)
-    //     {
-    //         data.roomids.forEach(roomid => {
+        //     if(res != null)
+        //         memberdata = JSON.parse(res);
+        //     else
+        //         memberdata = {};
+                
+        //     if(memberdata != null)
+        //     {
+        //         data.roomids.forEach(roomid => {
 
-    //             //檢查member是否已經加入過room
-    //             //room 還沒被任何人加入過  或  room內沒有包含指定的socket id
-    //             if(typeof socket.adapter.rooms[roomid]=='undefined'|| Object.keys(socket.adapter.rooms[roomid].sockets).includes(socket.id)==false)
-    //             {
-    //                 socket.join(roomid);
-    //                 console.log('join roomid = '+roomid)
-    //                 console.log(socket.adapter.rooms[roomid].sockets);
-    //                 var retData={
-    //                     Acc: memberdata.Account,
-    //                     token: data.token,
-    //                     roomid: roomid,
-    //                 }
-    //                 console.log(retData.Acc);
+        //             //檢查member是否已經加入過room
+        //             //room 還沒被任何人加入過  或  room內沒有包含指定的socket id
+        //             if(typeof socket.adapter.rooms[roomid]=='undefined'|| Object.keys(socket.adapter.rooms[roomid].sockets).includes(socket.id)==false)
+        //             {
+        //                 socket.join(roomid);
+        //                 console.log('join roomid = '+roomid)
+        //                 console.log(socket.adapter.rooms[roomid].sockets);
+        //                 var retData={
+        //                     Acc: memberdata.Account,
+        //                     token: data.token,
+        //                     roomid: roomid,
+        //                 }
+        //                 console.log(retData.Acc);
 
-    //                 socket.broadcast.to(roomid).emit('message', {"event":'join', "data": retData});
-    //                 console.log('retdata'+retData);
-    //             }
-    //         });   
-    //     };
+        //                 socket.broadcast.to(roomid).emit('message', {"event":'join', "data": retData});
+        //                 console.log('retdata'+retData);
+        //             }
+        //         });   
+        //     };
     // });
     
     socket.on("say", async (chatData) => {
@@ -194,11 +194,11 @@ io.on('connection', (socket) => {
             //redis所有room清單
             var rooms = await redisClient_room.keys('*');
 
-            //對所有人
-            if(chatData.chatSelect=='all')
-                io.emit('message',{'event':'say', 'data': retData});
+            //對所有人  //player不能對所有人說話
+            // if(chatData.chatSelect=='all')
+            //     io.emit('message',{'event':'say', 'data': retData});
             //對room
-            else if(rooms.includes(chatData.chatSelect))//redis清單內有這個room
+            if(rooms.includes(chatData.chatSelect))//redis清單內有這個room
             {
                 if(typeof socket.adapter.rooms[chatData.chatSelect]!='undefined')
                 {
