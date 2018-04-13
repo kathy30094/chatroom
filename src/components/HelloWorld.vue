@@ -7,7 +7,8 @@
           <span id="status">{{status}}</span> / <span id="online">{{peopleOnline}}</span> online.
       </div>
       <div class="side-nav">
-        <h2>加入房間</h2>
+        <!-- //////////////////////////////////////////待改 -->
+        <!-- <h2>加入房間</h2>
         <div id='join room'>
           <br>
           <label>roomA</label> <input type="checkbox" value="roomA" v-model="roomJoin">
@@ -19,14 +20,14 @@
           <button type='button' @click="join">加入</button>
         </div>
         <br>
-        <br>
+        <br> -->
 
         <h2>選擇聊天對象</h2>
         <div id='chose to-say'>
           <table>
             <tr>
-              <td><label>all</label></td>
-              <td><input type="radio" v-model="chatData.chatSelect" value='all' name="chose"/></td>
+              <td><label>{{roomBelong}}</label></td>
+              <td><input type="radio" v-model="chatData.chatSelect" :value='roomBelong' name="chose"/></td>
             </tr>
             <!-- <tr>
               <td><label>roomA</label></td>
@@ -73,7 +74,7 @@ export default {
     return{
       chatData: {
         msg: '',
-        chatSelect: 'all',
+        chatSelect: this.roomBelong,
       },
       Acc:'',
       roomJoin: [],
@@ -81,6 +82,7 @@ export default {
       status: '',
       msgs: [],
       memberlist: [],
+      roomBelong: '',
     };
   },
   methods: {
@@ -104,6 +106,7 @@ export default {
       }, 0);
     },
 
+    //////////////////////////待改
     join()
     {
       let joinData = {
@@ -129,10 +132,13 @@ export default {
       // window.location.href = 'http://192.168.4.114';
     },
 
-    showSelfAcc(memberAcc)
+    showSelfMsg(memberMsg)
     {
-      localStorage.setItem('Account',memberAcc);
-      this.Acc = memberAcc;
+      localStorage.setItem('Account',memberMsg.Acc);
+      this.Acc = memberMsg.Acc;
+      localStorage.setItem('roomBelong', memberMsg.roomBelong);
+      this.roomBelong = memberMsg.roomBelong;
+      this.chatData.chatSelect = memberMsg.roomBelong;
     },
 
     showAllMember(memberOnlineArray)
