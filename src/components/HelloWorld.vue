@@ -163,15 +163,10 @@ export default {
 
   mounted() {
     var theToken = window.name;
-    if(localStorage.token == null || theToken != "")
+    /////////////////////////////////////////////////////////待改    firefox 無痕視窗會有問題
+    if(localStorage.token == null || theToken)
       localStorage.setItem('token',theToken);
     console.log(typeof theToken);
-    window.name = "";
-    // else
-    // {
-    //   if(window.name != null)
-    //     localStorage.setItem('token',window.name);
-    // }
   }
 }
 

@@ -132,6 +132,7 @@ io.on('connection', (socket) => {
         }
             
     });
+
     //      待改
     socket.on('join', async (data) => {
         
@@ -228,9 +229,6 @@ io.on('connection', (socket) => {
         if(AccLeave != null)
         {
             await redisClient_onlineSocket.del(socket.id);
-
-            //單處登入 單socket
-            //await redisClient_onlineAcc.del(AccLeave);
 
             memberSockets = JSON.parse(await redisClient_onlineAcc.get(AccLeave));
 
