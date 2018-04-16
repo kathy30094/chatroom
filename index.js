@@ -46,6 +46,7 @@ var memberdata = {};
 var memberSockets = [];
 var membersInRoom = [];
 //connection
+
 io.on('connection', (socket) => {
 
     console.log('Hello!');  // 顯示 Hello!
@@ -84,9 +85,6 @@ io.on('connection', (socket) => {
     //一登入就進來登記
     socket.on('isOnline',async (token) => {
 
-        memberSockets = [];
-        membersInRoom = [];
-
         io.of('/').adapter.clients((err,clients) => {
             console.log('clients :   '+clients);
         });
@@ -110,6 +108,7 @@ io.on('connection', (socket) => {
     
                 socket.emit('showSelfMsg',memberMsg);
 
+                //進入房間後，接著拿取房間的公告
                 socket.join(memberdata.roomBelong);
                 await getAnnounce(memberdata.roomBelong);
 
@@ -139,19 +138,32 @@ io.on('connection', (socket) => {
 
 
                 //加入(Acc,socket id array)
-                memberDataInRedis = await redisClient_onlineAcc.get(memberdata.Account);
-                // console.log('memberDataInRedis : '+ typeof memberDataInRedis + memberDataInRedis);
+                socketAndToken = await redisClient_onlineAcc.get(memberdata.Account);
+                // console.log('socketAndToken : '+ typeof socketAndToken + socketAndToken);
 
-                if(memberDataInRedis != null)
-                    memberSockets = JSON.parse(memberDataInRedis);
-
+                if(socketAndToken != null)
+                {
+                    memberSockets = JSON.parse(socketAndToken).socketid;
+                    memberTokens = JSON.parse(socketAndToken).token;
+                }
+                else
+                {
+                    memberSockets = [];
+                    memberTokens = [];
+                }
+                    
                 memberSockets.push(socket.id);
+                if(!memberTokens.includes(token))
+                    memberTokens.push(token);
 
-                console.log("Acc " + memberdata.Account+" memberSockets after push : "+memberSockets);
+                let socketAndTokenToSave = {
+                    'socketid': memberSockets,
+                    'token' : memberTokens
+                };
 
-                
-                await redisClient_onlineAcc.set(memberdata.Account, JSON.stringify(memberSockets));
+                console.log("Acc " + memberdata.Account+" SocketAndTokenToSave after push : "+JSON.stringify(socketAndTokenToSave));
 
+                await redisClient_onlineAcc.set(memberdata.Account, JSON.stringify(socketAndTokenToSave));
 
                 await redisClient_onlineSocket.set(socket.id, memberdata.Account);
                 memberOnlineArray = await redisClient_onlineAcc.keys('*');
@@ -247,13 +259,11 @@ io.on('connection', (socket) => {
             //私聊
             else
             {
-                //redis
-                var socketsIdChatTo = JSON.parse(await redisClient_onlineAcc.get(chatData.chatSelect));
-
-                //給自己
+                //給自己    //////////////////////////////////////////待改
                 socket.emit('message',{'event':'say', 'data': retData});
 
                 //給對象
+                var socketsIdChatTo = JSON.parse(await redisClient_onlineAcc.get(chatData.chatSelect));
                 socketsIdChatTo.forEach(socketIdto => {
                     socket.to(socketIdto).emit('message',{'event':'say', 'data': retData});
                 });
@@ -271,10 +281,10 @@ io.on('connection', (socket) => {
         {
             await redisClient_onlineSocket.del(socket.id);
 
-            memberSockets = JSON.parse(await redisClient_onlineAcc.get(AccLeave));
+            socketAndToken = JSON.parse(await redisClient_onlineAcc.get(AccLeave));
 
             //如果 某Acc 關閉最後一個分頁，要把Acc從上線中的名單移除，也從各個room中移除
-            if(memberSockets.length <= 1)
+            if(socketAndToken.socketid.length <= 1)
             {
                 //從上線名單中移除
                 await redisClient_onlineAcc.del(AccLeave);
@@ -310,8 +320,10 @@ io.on('connection', (socket) => {
                 //拿掉指定的socketid from array
                 memberSockets = _.without(memberSockets, socket.id);
 
-                await redisClient_onlineAcc.set(AccLeave, JSON.stringify(memberSockets));
-                console.log(AccLeave+" socket left : "+ memberSockets);
+                socketAndToken.socketid = memberSockets;
+
+                await redisClient_onlineAcc.set(AccLeave, JSON.stringify(socketAndToken));
+                console.log(AccLeave+" socket left : "+ JSON.stringify(socketAndToken));
             }
 
             //在線上的所有member
