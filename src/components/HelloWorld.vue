@@ -108,6 +108,24 @@ export default {
   },
 
   sockets: {
+    membersInRoom(data)
+    {
+      console.log(data.roomName+' : '+data.members);
+      if(data.roomName == localStorage.roomBelong)
+      {
+        this.memberlist = data.members;
+        this.peopleOnline = data.members.length;
+      }
+    },
+
+    kickOut()
+    {
+      localStorage.clear();
+      // localStorage.token = null;
+      window.location.reload();
+      console.log('logOut !');
+    },
+
     connect()
     {
       this.status = 'Connceted';
@@ -116,8 +134,8 @@ export default {
     
     notLogined()
     {
-      // alert('請先登入！');
-      // window.location.href = 'http://192.168.4.114';
+      alert('請先登入！');
+      window.location.href = 'http://192.168.4.114';
     },
 
     showSelfMsg(memberMsg)
