@@ -82,14 +82,15 @@ io.on('connection', (socket) => {
             socket.emit('message',{"event":'getAnnounce', "data": deAnnounceList});
     }
 
-    async function saveRoomDataToRedis(roomBelong, Acc)
+    async function saveRoomDataToRedis(roomBelong,toJoin, Acc)
     {
-        socket.join(roomBelong);
-        
+        roomToJoin = roomBelong+toJoin;
+        socket.join(roomToJoin);
+
         membersInRoomRedis = null;
         membersInRoom = [];
         //加入redis房間  .set(roomXXXX, [member array])
-        membersInRoomRedis = await redisClient_room.get(roomBelong);
+        membersInRoomRedis = await redisClient_room.get(roomToJoin);
 
         if(membersInRoomRedis != null)
         {
@@ -98,24 +99,33 @@ io.on('connection', (socket) => {
             if(membersInRoom.indexOf(Acc) == -1)
             {
                 membersInRoom.push(Acc);
-                await redisClient_room.set(roomBelong, JSON.stringify(membersInRoom));
-                console.log("member in "+roomBelong + " : "+ membersInRoom);
-                
-                //向room內所有人更新room內人員名單
-                io.in(roomBelong).emit('membersInRoom',{'roomName': roomBelong,'members': membersInRoom});
+                await redisClient_room.set(roomToJoin, JSON.stringify(membersInRoom));
+                console.log("member in "+roomToJoin + " : "+ membersInRoom);
             }
             else
-                console.log('member '+Acc+' already in '+roomBelong);
+                console.log('member '+Acc+' already in '+roomToJoin);
         }
         else
         {
             membersInRoom.push(Acc);
-            await redisClient_room.set(roomBelong, JSON.stringify(membersInRoom));
-            console.log("member in "+roomBelong + " : "+ membersInRoom+"    new room");
+            await redisClient_room.set(roomToJoin, JSON.stringify(membersInRoom));
+            console.log("member in "+roomToJoin + " : "+ membersInRoom+"    new room");
+            
+            //對Agent更新room資料
+            io.to(memberdata.roomBelong+'_Agent').emit('allRooms',await redisClient_room.keys(memberdata.roomBelong+'*'));
+
         }
 
+        //向 room內所有Agent&Player發布所有room內在線名單
+        if(roomBelong != roomToJoin)//不向player公佈所有在roomAgentX的名單
+            io.in(roomToJoin).emit('membersInRoom',{'roomName': roomToJoin,'members': membersInRoom});
+
+        //對Agent發布room內的名單
+        io.to(roomBelong+'_Agent').emit('membersInRoom',{'roomName': roomToJoin,'members': membersInRoom});
+        console.log('room data : '+roomToJoin+'     '+membersInRoom);
+        
         //進入房間後，接著拿取房間的公告
-        await getAnnounce(roomBelong);
+        await getAnnounce(roomToJoin);
 
     }
 
@@ -146,8 +156,8 @@ io.on('connection', (socket) => {
                 socket.emit('showSelfMsg',memberMsg);
 
                 ///add to redis room
-                await saveRoomDataToRedis(memberdata.roomBelong, memberdata.Account);
-                await saveRoomDataToRedis(memberdata.roomBelong+'_Player', memberdata.Account);
+                await saveRoomDataToRedis(memberdata.roomBelong,'' ,memberdata.Account);
+                await saveRoomDataToRedis(memberdata.roomBelong,'_Player', memberdata.Account);
 
                 //加入Acc總表(Acc,socket id array)
                 socketAndToken = await redisClient_onlineAcc.get(memberdata.Account);
@@ -193,41 +203,6 @@ io.on('connection', (socket) => {
         }
             
     });
-
-    // //      待改
-    // socket.on('join', async (data) => {
-        
-        //     var res = await redisClient_token.get(data.token);
-
-        //     if(res != null)
-        //         memberdata = JSON.parse(res);
-        //     else
-        //         memberdata = {};
-                
-        //     if(memberdata != null)
-        //     {
-        //         data.roomids.forEach(roomid => {
-
-        //             //檢查member是否已經加入過room
-        //             //room 還沒被任何人加入過  或  room內沒有包含指定的socket id
-        //             if(typeof socket.adapter.rooms[roomid]=='undefined'|| Object.keys(socket.adapter.rooms[roomid].sockets).includes(socket.id)==false)
-        //             {
-        //                 socket.join(roomid);
-        //                 console.log('join roomid = '+roomid)
-        //                 console.log(socket.adapter.rooms[roomid].sockets);
-        //                 var retData={
-        //                     Acc: memberdata.Account,
-        //                     token: data.token,
-        //                     roomid: roomid,
-        //                 }
-        //                 console.log(retData.Acc);
-
-        //                 socket.broadcast.to(roomid).emit('message', {"event":'join', "data": retData});
-        //                 console.log('retdata'+retData);
-        //             }
-        //         });   
-        //     };
-    // });
     
     socket.on("say", async (chatData) => {
 
@@ -262,15 +237,19 @@ io.on('connection', (socket) => {
                     //找到已經在room裡的成員
                     var peopleInRoom=Object.keys(socket.adapter.rooms[chatData.chatSelect].sockets);
 
-                    //檢查自己有沒有在裡面
-                    if(peopleInRoom.includes(socket.id))
+                    //檢查自己有沒有在裡面   ///////////////////////////////////////////增加限制條件，不可對roomAgentX講話
+                    if(peopleInRoom.includes(socket.id) || chatData.chatSelect != memberdata.roomBelong)
                         io.in(chatData.chatSelect).emit('message',{'event':'say', 'data': retData});
                 }
             }
             //私聊
             else
             {
-                //給自己   ///////////////////////////////////////////待改
+                //給自己   //////////////////////////////////////////////////////////////////////////待改
+                selfData = JSON.parse(await redisClient_onlineAcc.get(memberdata.Account));
+                selfData.socketid.forEach(socketIdto => {
+                    socket.to(socketIdto).emit('message',{'event':'say', 'data': retData});
+                });
                 socket.emit('message',{'event':'say', 'data': retData});
 
                 //給對象

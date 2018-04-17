@@ -142,9 +142,9 @@ export default {
     {
       localStorage.setItem('Account',memberMsg.Acc);
       this.Acc = memberMsg.Acc;
-      localStorage.setItem('roomBelong', memberMsg.roomBelong);
-      this.roomBelong = memberMsg.roomBelong;
-      this.chatData.chatSelect = memberMsg.roomBelong;
+      localStorage.setItem('roomBelong', memberMsg.roomBelong+'_Player');
+      this.roomBelong = memberMsg.roomBelong+'_Player';
+      this.chatData.chatSelect = memberMsg.roomBelong+'_Player';
     },
 
     showAllMember(memberOnlineArray)
