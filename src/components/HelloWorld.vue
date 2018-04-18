@@ -142,9 +142,9 @@ export default {
     {
       localStorage.setItem('Account',memberMsg.Acc);
       this.Acc = memberMsg.Acc;
-      localStorage.setItem('roomBelong', memberMsg.roomBelong+'_Player');
-      this.roomBelong = memberMsg.roomBelong+'_Player';
-      this.chatData.chatSelect = memberMsg.roomBelong+'_Player';
+      localStorage.setItem('roomBelong', memberMsg.roomBelong+':Player');
+      this.roomBelong = memberMsg.roomBelong+':Player';
+      this.chatData.chatSelect = memberMsg.roomBelong+':Player';
     },
 
     showAllMember(memberOnlineArray)
@@ -188,6 +188,7 @@ export default {
     /////////////////////////////////////////////////////////待改    firefox 無痕視窗會有問題
     if(localStorage.token == null || theToken)
       localStorage.setItem('token',theToken);
+    window.name = '';
     console.log(typeof theToken);
   }
 }

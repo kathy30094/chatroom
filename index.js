@@ -72,7 +72,7 @@ io.on('connection', (socket) => {
     async function getAnnounce(roomBelong)
     {
         
-        announceList = await redisClient_announce.keys('__'+roomBelong+'__'+'*');
+        announceList = await redisClient_announce.keys(roomBelong+':'+'*');
         console.log('get announce from '+ roomBelong );
         deAnnounceList = [];
         announceList.forEach(announce => {
@@ -112,7 +112,7 @@ io.on('connection', (socket) => {
             console.log("member in "+roomToJoin + " : "+ membersInRoom+"    new room");
             
             //對Agent更新room資料
-            io.to(memberdata.roomBelong+'_Agent').emit('allRooms',await redisClient_room.keys(memberdata.roomBelong+'*'));
+            io.to(memberdata.roomBelong+':Agent').emit('allRooms',await redisClient_room.keys(memberdata.roomBelong+'*'));
 
         }
 
@@ -121,7 +121,7 @@ io.on('connection', (socket) => {
             io.in(roomToJoin).emit('membersInRoom',{'roomName': roomToJoin,'members': membersInRoom});
 
         //對Agent發布room內的名單
-        io.to(roomBelong+'_Agent').emit('membersInRoom',{'roomName': roomToJoin,'members': membersInRoom});
+        io.to(roomBelong+':Agent').emit('membersInRoom',{'roomName': roomToJoin,'members': membersInRoom});
         console.log('room data : '+roomToJoin+'     '+membersInRoom);
         
         //進入房間後，接著拿取房間的公告
@@ -157,7 +157,7 @@ io.on('connection', (socket) => {
 
                 ///add to redis room
                 await saveRoomDataToRedis(memberdata.roomBelong,'' ,memberdata.Account);
-                await saveRoomDataToRedis(memberdata.roomBelong,'_Player', memberdata.Account);
+                await saveRoomDataToRedis(memberdata.roomBelong,':Player', memberdata.Account);
 
                 //加入Acc總表(Acc,socket id array)
                 socketAndToken = await redisClient_onlineAcc.get(memberdata.Account);
