@@ -12,40 +12,40 @@ const io = require('socket.io')(server);
 const _ = require('underscore');
 
 //async-redis settings
-const asyncRedis = require("async-redis");
+    const asyncRedis = require("async-redis");
 
-const redisClient_token = asyncRedis.createClient();
-redisClient_token.select(0);
+    const redisClient_token = asyncRedis.createClient();
+    redisClient_token.select(0);
 
-const redisClient_onlineAcc = asyncRedis.createClient();
-redisClient_onlineAcc.select(2);
+    const redisClient_onlineAcc = asyncRedis.createClient();
+    redisClient_onlineAcc.select(2);
 
-const redisClient_onlineSocket = asyncRedis.createClient();
-redisClient_onlineSocket.select(3);
+    const redisClient_onlineSocket = asyncRedis.createClient();
+    redisClient_onlineSocket.select(3);
 
-const redisClient_room = asyncRedis.createClient();
-redisClient_room.select(4);
+    const redisClient_room = asyncRedis.createClient();
+    redisClient_room.select(4);
 
-const redisClient_announce = asyncRedis.createClient();
-redisClient_announce.select(5);
+    const redisClient_announce = asyncRedis.createClient();
+    redisClient_announce.select(5);
+
+//end   async-redis settings
 
 //redisAdapter
-const redis = require('redis');
-const redisAdapter  = require('socket.io-redis');
-const pub = redis.createClient();
-const sub = redis.createClient();
-io.adapter(redisAdapter({pubClient: pub, subClient: sub}));
+    const redis = require('redis');
+    const redisAdapter  = require('socket.io-redis');
+    const pub = redis.createClient();
+    const sub = redis.createClient();
+    io.adapter(redisAdapter({pubClient: pub, subClient: sub}));
 
-pub.on('ready',function(err){
-    console.log('redis ready');
-});
+    pub.on('ready',function(err){
+        console.log('redis ready');
+    });
+//end redisAdapter
 
-//var memberOnline = {};
-var memberOnlineArray = [];
 var memberdata = {};
 var memberSockets = [];
 var membersInRoom = [];
-//connection
 
 io.on('connection', (socket) => {
 
@@ -193,10 +193,6 @@ io.on('connection', (socket) => {
 
                 await redisClient_onlineSocket.set(socket.id, memberdata.Account);
 
-                // memberOnlineArray = await redisClient_onlineAcc.keys('*');
-                // console.log('memberOnlineArray : ' + memberOnlineArray);
-                // io.emit('showAllMember',memberOnlineArray);
-                
                 console.log("member Acc " + memberdata.Account+', member sockeet id '+ socket.id + " is online");
 
             }
@@ -325,12 +321,6 @@ io.on('connection', (socket) => {
                 await redisClient_onlineAcc.set(AccLeave, JSON.stringify(socketAndToken));
                 console.log(AccLeave+" socket left : "+ JSON.stringify(socketAndToken));
             }
-
-            // //在線上的所有member
-            // var memberOnlineArray = await redisClient_onlineAcc.keys('*');
-            // console.log('AccList after Leave : '+memberOnlineArray);
-
-            // io.emit('showAllMember',memberOnlineArray);
         }
     });
 });
