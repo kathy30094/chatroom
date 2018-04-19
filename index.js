@@ -72,14 +72,19 @@ io.on('connection', (socket) => {
     async function getAnnounce(roomBelong)
     {
         
-        announceList = await redisClient_announce.keys(roomBelong+':'+'*');
+        announceList = await redisClient_announce.keys(roomBelong+':*');
         console.log('get announce from '+ roomBelong );
         deAnnounceList = [];
-        announceList.forEach(announce => {
-            deAnnounceList.push(decodeURIComponent(announce));
-        });
+        
         if(announceList)
+        {
+            announceList.forEach(announce => {
+                deAnnounceList.push(decodeURIComponent(announce));
+            });
+            console.log(roomBelong+'  announceList : '+deAnnounceList);
             socket.emit('message',{"event":'getAnnounce', "data": deAnnounceList});
+        }
+            
     }
 
     async function saveRoomDataToRedis(roomBelong,toJoin, Acc)
@@ -157,7 +162,7 @@ io.on('connection', (socket) => {
 
                 ///add to redis room
                 await saveRoomDataToRedis(memberdata.roomBelong,'' ,memberdata.Account);
-                await saveRoomDataToRedis(memberdata.roomBelong,':Player', memberdata.Account);
+                await saveRoomDataToRedis(memberdata.roomBelong,':_Player', memberdata.Account);
 
                 //加入Acc總表(Acc,socket id array)
                 socketAndToken = await redisClient_onlineAcc.get(memberdata.Account);

@@ -135,16 +135,16 @@ export default {
     notLogined()
     {
       alert('請先登入！');
-      window.location.href = 'http://192.168.4.114';
+      window.location.href = 'http://192.168.4.114:8080';
     },
 
     showSelfMsg(memberMsg)
     {
       localStorage.setItem('Account',memberMsg.Acc);
       this.Acc = memberMsg.Acc;
-      localStorage.setItem('roomBelong', memberMsg.roomBelong+':Player');
-      this.roomBelong = memberMsg.roomBelong+':Player';
-      this.chatData.chatSelect = memberMsg.roomBelong+':Player';
+      localStorage.setItem('roomBelong', memberMsg.roomBelong+'_:Player');
+      this.roomBelong = memberMsg.roomBelong+'_:Player';
+      this.chatData.chatSelect = memberMsg.roomBelong+'_:Player';
     },
 
     showAllMember(memberOnlineArray)
