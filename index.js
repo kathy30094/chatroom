@@ -11,6 +11,14 @@ const io = require('socket.io')(server);
 
 const _ = require('underscore');
 
+const mysql = require('mysql2/promise');
+const mysqlConnectionData = {
+    host    : 'localhost',
+    user    : 'saaa',
+    password: 'dk3u31j4dk3u3',
+    database: 'company'
+};
+
 //async-redis settings
     const asyncRedis = require("async-redis");
 
@@ -89,8 +97,8 @@ io.on('connection', (socket) => {
 
     async function saveRoomDataToRedis(roomBelong,toJoin, Acc)
     {
-        roomToJoin = roomBelong+toJoin;
-        socket.join(roomToJoin);
+        roomToJoin = toJoin+':current';
+        socket.join(toJoin);
 
         membersInRoomRedis = null;
         membersInRoom = [];
@@ -115,22 +123,19 @@ io.on('connection', (socket) => {
             membersInRoom.push(Acc);
             await redisClient_room.set(roomToJoin, JSON.stringify(membersInRoom));
             console.log("member in "+roomToJoin + " : "+ membersInRoom+"    new room");
-            
-            //對Agent更新room資料
-            io.to(memberdata.roomBelong+'_:Agent').emit('allRooms',await redisClient_room.keys(memberdata.roomBelong+'*'));
-
         }
 
         //向 room內所有Agent&Player發布所有room內在線名單
-        if(roomBelong != roomToJoin)//不向player公佈所有在roomAgentX的名單
-            io.in(roomToJoin).emit('membersInRoom',{'roomName': roomToJoin,'members': membersInRoom});
+        if(roomToJoin != roomBelong+'_:'+roomBelong)//不向player公佈所有在roomAgentX的名單
+            io.in(toJoin).emit('membersInRoom',{'roomName': toJoin,'members': membersInRoom});
 
         //對Agent發布room內的名單
         io.to(roomBelong+'_:Agent').emit('membersInRoom',{'roomName': roomToJoin,'members': membersInRoom});
+
         console.log('room data : '+roomToJoin+'     '+membersInRoom);
         
         //進入房間後，接著拿取房間的公告
-        await getAnnounce(roomToJoin);
+        await getAnnounce(toJoin);
 
     }
 
@@ -161,8 +166,9 @@ io.on('connection', (socket) => {
                 socket.emit('showSelfMsg',memberMsg);
 
                 ///add to redis room
-                await saveRoomDataToRedis(memberdata.roomBelong,'' ,memberdata.Account);
-                await saveRoomDataToRedis(memberdata.roomBelong,'_:Player', memberdata.Account);
+                ///(roomBelong,roomName from Mysql,memberAccount)
+                await saveRoomDataToRedis(memberdata.roomBelong,memberdata.roomBelong+'_:Player', memberdata.Account);
+                await saveRoomDataToRedis(memberdata.roomBelong,memberdata.roomBelong+'_:'+memberdata.roomBelong, memberdata.Account);
 
                 //加入Acc總表(Acc,socket id array)
                 socketAndToken = await redisClient_onlineAcc.get(memberdata.Account);

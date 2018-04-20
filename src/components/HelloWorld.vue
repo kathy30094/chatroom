@@ -94,17 +94,6 @@ export default {
       }, 0);
     },
 
-    //////////////////////////待改
-    // join()
-    // {
-    //   let joinData = {
-    //     token: localStorage.token,
-        
-    //     roomids: this.roomJoin,
-    //   };
-    //   this.$socket.emit('join', joinData);
-    //   console.log('joined');
-    // },
   },
 
   sockets: {
@@ -145,12 +134,6 @@ export default {
       localStorage.setItem('roomBelong', memberMsg.roomBelong+'_:Player');
       this.roomBelong = memberMsg.roomBelong+'_:Player';
       this.chatData.chatSelect = memberMsg.roomBelong+'_:Player';
-    },
-
-    showAllMember(memberOnlineArray)
-    {
-      this.memberlist = memberOnlineArray;
-      this.peopleOnline = memberOnlineArray.length;
     },
     
     message(msg)
