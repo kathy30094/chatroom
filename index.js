@@ -95,7 +95,7 @@ io.on('connection', (socket) => {
             
     }
 
-    async function saveRoomDataToRedis(roomBelong,toJoin, Acc)
+    async function romSaveJoinEmit(roomBelong,toJoin, Acc)
     {
         roomToJoin = toJoin+':current';
         socket.join(toJoin);
@@ -130,7 +130,7 @@ io.on('connection', (socket) => {
             io.in(toJoin).emit('membersInRoom',{'roomName': toJoin,'members': membersInRoom});
 
         //對Agent發布room內的名單
-        io.to(roomBelong+'_:Agent').emit('membersInRoom',{'roomName': roomToJoin,'members': membersInRoom});
+        io.to(roomBelong+'_:Agent').emit('membersInRoom',{'roomName': toJoin,'members': membersInRoom});
 
         console.log('room data : '+roomToJoin+'     '+membersInRoom);
         
@@ -167,8 +167,17 @@ io.on('connection', (socket) => {
 
                 ///add to redis room
                 ///(roomBelong,roomName from Mysql,memberAccount)
-                await saveRoomDataToRedis(memberdata.roomBelong,memberdata.roomBelong+'_:Player', memberdata.Account);
-                await saveRoomDataToRedis(memberdata.roomBelong,memberdata.roomBelong+'_:'+memberdata.roomBelong, memberdata.Account);
+                rooms = JSON.parse(await redisClient_onlineAcc.get('roomData:'+memberdata.Account));
+                
+                for(let room of rooms)
+                    await romSaveJoinEmit(memberdata.roomBelong,room,memberdata.Account);
+
+                var roomToShow = [];
+                rooms.forEach(element => {
+                    if(element.indexOf(':'+memberdata.roomBelong)==-1)
+                        roomToShow.push(element);
+                });
+                socket.emit('allRooms',roomToShow);
 
                 //加入Acc總表(Acc,socket id array)
                 socketAndToken = await redisClient_onlineAcc.get(memberdata.Account);

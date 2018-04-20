@@ -25,12 +25,16 @@
         <h2>選擇聊天對象</h2>
         <div id='chose to-say'>
           <table>
-            <tr>
+            <!-- <tr>
               <td><label>{{roomBelong}}</label></td>
               <td><input type="radio" v-model="chatData.chatSelect" :value='roomBelong' name="chose"/></td>
+            </tr> -->
+            <tr v-for="(room) in roomList">
+              <td>{{room}}</td>
+              <td><input type="radio" v-model="chatData.chatSelect" :value='room' name="chose"/></td>
             </tr>
 
-            <tr v-for="(memberAcc) in memberlist">
+            <tr v-for="(memberAcc) in memberList">
               <td>{{memberAcc}}</td>
               <td><input type="radio" v-model="chatData.chatSelect" :value='memberAcc' name="chose"/></td>
             </tr>
@@ -69,7 +73,7 @@ export default {
       peopleOnline: '',
       status: '',
       msgs: [],
-      memberlist: [],
+      memberList: [],
       roomBelong: '',
     };
   },
@@ -88,10 +92,6 @@ export default {
         chatSelect: this.chatData.chatSelect,
       };
       this.$socket.emit('say', chatData);
-      var chatbox = document.getElementsByClassName('chat-box');
-      setTimeout(() => {
-        chatbox[0].scrollTop = 9999999;
-      }, 0);
     },
 
   },
@@ -102,11 +102,17 @@ export default {
       console.log(data.roomName+' : '+data.members);
       if(data.roomName == localStorage.roomBelong)
       {
-        this.memberlist = data.members;
+        this.memberList = data.members;
         this.peopleOnline = data.members.length;
       }
     },
 
+    allRooms(data)
+    {
+      this.roomList = data;
+      console.log(data);
+    },
+    
     kickOut()
     {
       localStorage.clear();
