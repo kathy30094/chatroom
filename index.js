@@ -142,196 +142,152 @@ io.on('connection', (socket) => {
     //一登入就進來登記
     socket.on('isOnline',async (token) => {
 
-        io.of('/').adapter.clients((err,clients) => {
-            console.log('clients :   '+clients);
-        });
-        
         console.log(token);
 
-        var res = await redisClient_token.get(token);
-        //console.log("res :    "+res);
+        memberdata = await authAndGetAcc(token);
 
-        if(res != null)
+        //上線的人存到redis  
+
+        let memberMsg = {
+            Acc: memberdata.Account,
+            roomBelong: memberdata.roomBelong,
+        };
+        socket.emit('showSelfMsg',memberMsg);
+
+        //加入自己屬於的房間
+        rooms = JSON.parse(await redisClient_onlineAcc.get('roomData:'+memberdata.Account));
+        for(let room of rooms)
+            await romSaveJoinEmit(memberdata.roomBelong,room,memberdata.Account);
+
+        //show給前端頁面自己在的room，除了roomAgentX_:roomAgentX
+        var roomToShow = [];
+        rooms.forEach(element => {
+            if(element.indexOf(':'+memberdata.roomBelong)==-1)
+                roomToShow.push(element);
+        });
+        socket.emit('allRooms',roomToShow);
+
+        //Acc 與 socketid & token 對照
+        socketAndToken = await redisClient_onlineAcc.get(memberdata.Account);
+        if(socketAndToken != null)
         {
-            memberdata = JSON.parse(res);
-
-            //上線的人存到redis  
-            if(typeof memberdata.Account != 'undifined')
-            {
-                let memberMsg = {
-                    Acc: memberdata.Account,
-                    roomBelong: memberdata.roomBelong,
-                };
-    
-                socket.emit('showSelfMsg',memberMsg);
-
-                ///add to redis room
-                ///(roomBelong,roomName from Mysql,memberAccount)
-                rooms = JSON.parse(await redisClient_onlineAcc.get('roomData:'+memberdata.Account));
-                
-                for(let room of rooms)
-                    await romSaveJoinEmit(memberdata.roomBelong,room,memberdata.Account);
-
-                var roomToShow = [];
-                rooms.forEach(element => {
-                    if(element.indexOf(':'+memberdata.roomBelong)==-1)
-                        roomToShow.push(element);
-                });
-                socket.emit('allRooms',roomToShow);
-
-                //加入Acc總表(Acc,socket id array)
-                socketAndToken = await redisClient_onlineAcc.get(memberdata.Account);
-                // console.log('socketAndToken : '+ typeof socketAndToken + socketAndToken);
-                if(socketAndToken != null)
-                {
-                    memberSockets = JSON.parse(socketAndToken).socketid;
-                    memberTokens = JSON.parse(socketAndToken).token;
-                }
-                else
-                {
-                    memberSockets = [];
-                    memberTokens = [];
-                }
-                    
-                memberSockets.push(socket.id);
-                if(!memberTokens.includes(token))
-                    memberTokens.push(token);
-
-                let socketAndTokenToSave = {
-                    'socketid': memberSockets,
-                    'token' : memberTokens
-                };
-
-                console.log("Acc " + memberdata.Account+" SocketAndTokenToSave after push : "+JSON.stringify(socketAndTokenToSave));
-  
-                await redisClient_onlineAcc.set(memberdata.Account, JSON.stringify(socketAndTokenToSave));
-
-                await redisClient_onlineSocket.set(socket.id, memberdata.Account);
-
-                console.log("member Acc " + memberdata.Account+', member sockeet id '+ socket.id + " is online");
-
-            }
-        }  
+            memberSockets = JSON.parse(socketAndToken).socketid;
+            memberTokens = JSON.parse(socketAndToken).token;
+        }
         else
         {
-            memberdata = {};
-            socket.emit('notLogined');
+            memberSockets = [];
+            memberTokens = [];
         }
+            
+        memberSockets.push(socket.id);
+        if(!memberTokens.includes(token))
+            memberTokens.push(token);
+
+        let socketAndTokenToSave = {
+            'socketid': memberSockets,
+            'token' : memberTokens
+        };
+
+        console.log("Acc " + memberdata.Account+" SocketAndTokenToSave after push : "+JSON.stringify(socketAndTokenToSave));
+        await redisClient_onlineAcc.set(memberdata.Account, JSON.stringify(socketAndTokenToSave));
+
+        //socketid 與 Acc對照
+        await redisClient_onlineSocket.set(socket.id, memberdata.Account);
             
     });
     
     socket.on("say", async (chatData) => {
 
-        var res = await redisClient_token.get(chatData.token);
-        if(res != null)
-            memberdata = JSON.parse(res);
-        else
-            memberdata = {};
+        memberdata = await authAndGetAcc(chatData.token);
 
-        if(memberdata != null)
+        //ret
+        var retData={
+            Acc: memberdata.Account,
+            msg: chatData.msg,
+            chatSelect: chatData.chatSelect,  
+        };
+
+        console.log("chatSelect : "+chatData.chatSelect);
+
+        //redis所有room清單
+        var rooms = await redisClient_room.keys('*');
+
+        if(rooms.includes(chatData.chatSelect))//redis清單內有這個room
         {
-            console.log("chatSelect : "+chatData.chatSelect);
-            //ret
-            var retData={
-                Acc: memberdata.Account,
-                msg: chatData.msg,
-                chatSelect: chatData.chatSelect,  
-            };
-
-            //redis所有room清單
-            var rooms = await redisClient_room.keys('*');
-
-            //對所有人  //player不能對所有人說話
-            // if(chatData.chatSelect=='all')
-            //     io.emit('message',{'event':'say', 'data': retData});
-            
-            //對room
-            if(rooms.includes(chatData.chatSelect))//redis清單內有這個room
+            if(typeof socket.adapter.rooms[chatData.chatSelect]!='undefined')
             {
-                if(typeof socket.adapter.rooms[chatData.chatSelect]!='undefined')
-                {
-                    //找到已經在room裡的成員
-                    var peopleInRoom=Object.keys(socket.adapter.rooms[chatData.chatSelect].sockets);
+                //找到已經在room裡的成員
+                var peopleInRoom=Object.keys(socket.adapter.rooms[chatData.chatSelect].sockets);
 
-                    //檢查自己有沒有在裡面   ///////////////////////////////////////////增加限制條件，不可對roomAgentX講話
-                    if(peopleInRoom.includes(socket.id) || chatData.chatSelect != memberdata.roomBelong)
-                        io.in(chatData.chatSelect).emit('message',{'event':'say', 'data': retData});
-                }
-            }
-            //私聊
-            else
-            {
-                //給自己   //////////////////////////////////////////////////////////////////////////待改
-                selfData = JSON.parse(await redisClient_onlineAcc.get(memberdata.Account));
-                selfData.socketid.forEach(socketIdto => {
-                    socket.to(socketIdto).emit('message',{'event':'say', 'data': retData});
-                });
-                socket.emit('message',{'event':'say', 'data': retData});
-
-                //給對象
-                var socketsIdChatTo = JSON.parse(await redisClient_onlineAcc.get(chatData.chatSelect));
-                socketsIdChatTo.socketid.forEach(socketIdto => {
-                    socket.to(socketIdto).emit('message',{'event':'say', 'data': retData});
-                });
+                //檢查自己有沒有在裡面   //增加限制條件，不可對roomAgentX講話
+                if(peopleInRoom.includes(socket.id) || chatData.chatSelect != memberdata.roomBelong)
+                    io.in(chatData.chatSelect).emit('message',{'event':'say', 'data': retData});
             }
         }
-    });
+        //私聊
+        else
+        {
+            //給自己
+            selfData = JSON.parse(await redisClient_onlineAcc.get(memberdata.Account));
+            selfData.socketid.forEach(socketIdto => {
+                socket.to(socketIdto).emit('message',{'event':'say', 'data': retData});
+            });
+            socket.emit('message',{'event':'say', 'data': retData});
 
+            //給對象
+            var socketsIdChatTo = JSON.parse(await redisClient_onlineAcc.get(chatData.chatSelect));
+            socketsIdChatTo.socketid.forEach(socketIdto => {
+                socket.to(socketIdto).emit('message',{'event':'say', 'data': retData});
+            });
+        }
+    });
+    
+    // 有人離線了
     socket.on('disconnect', async () => {
-        // 有人離線了
-        //redids
+
+        //查詢Acc後，刪除 socketid對照
         var AccLeave = await redisClient_onlineSocket.get(socket.id);
+        await redisClient_onlineSocket.del(socket.id);
 
         //有登入，儲存過socket id 到 redis
         if(AccLeave != null)
         {
-            await redisClient_onlineSocket.del(socket.id);
-
             socketAndToken = JSON.parse(await redisClient_onlineAcc.get(AccLeave));
-            console.log('socketAndToken.socketid.length : '+socketAndToken.socketid.length);
 
             //如果 某Acc 關閉最後一個分頁，要把Acc從上線中的名單移除，也從各個room中移除
             if(socketAndToken.socketid.length <= 1)
             {
-
                 //從上線名單中移除
                 await redisClient_onlineAcc.del(AccLeave);
                 console.log(AccLeave+' leave all chat');
 
-                //找出所有已存在的房間，去每個房間裡看
-                allRooms = Object.values(await redisClient_room.keys('*'));
-                //console.log('allRoom : '+typeof allRooms+allRooms+allRooms.length);
-
-                //巡每個room，看Acc有沒有在裡面
+                //找出所有Acc加入的room，去每個房間裡看
+                allRooms = JSON.parse(await redisClient_onlineAcc.get('roomData:'+AccLeave));
                 for(let i = 0;i<allRooms.length;i++)
                 {
-                    membersInRoom = JSON.parse(await redisClient_room.get(allRooms[i]));
-                    //console.log('membersinroom : '+membersInRoom);
+                    membersInRoom = JSON.parse(await redisClient_room.get(allRooms[i]+':current'));
 
-                    //如果AccLeave有在room裡
-                    if(membersInRoom.indexOf(AccLeave)!=-1)
+                    //移除
+                    membersInRoom.splice(membersInRoom.indexOf(AccLeave),1);
+                    
+                    //如果room內沒人，刪除room
+                    if(membersInRoom.length==0)
+                        await redisClient_room.del(allRooms[i]+':current'); //如果移除了Acc之後，room裡面就沒人了，刪除沒人的room
+
+                    //room內還有人，向room內所有人更新room內人員名單
+                    else
                     {
-                        //移除
-                        membersInRoom.splice(membersInRoom.indexOf(AccLeave),1);
-                        
-                        if(membersInRoom.length==0)
-                            await redisClient_room.del(allRooms[i]); //如果移除了Acc之後，room裡面就沒人了，刪除沒人的room
-                        else
-                        {
-                            //room內還有人，向room內所有人更新room內人員名單
-                            await redisClient_room.set(allRooms[i], JSON.stringify(membersInRoom));
-                            io.in(allRooms[i]).emit('membersInRoom',{'roomName': allRooms[i],'members': membersInRoom});
-                        }
-
-                        console.log('member in room '+allRooms[i]+' :  '+membersInRoom)
+                        await redisClient_room.set(allRooms[i]+':current', JSON.stringify(membersInRoom));
+                        io.in(allRooms[i]).emit('membersInRoom',{'roomName': allRooms[i],'members': membersInRoom});
                     }
+                    console.log('member in room '+allRooms[i]+' :  '+membersInRoom);
+
                 }
             }
             else  //拿掉指定的socketid from array
             {
-                memberSockets = _.without(memberSockets, socket.id);
-
-                socketAndToken.socketid = memberSockets;
+                socketAndToken.socketid = _.without(socketAndToken.socketid, socket.id);
 
                 await redisClient_onlineAcc.set(AccLeave, JSON.stringify(socketAndToken));
                 console.log(AccLeave+" socket left : "+ JSON.stringify(socketAndToken));
