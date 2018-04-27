@@ -4,10 +4,10 @@
 
       <div id="status-box">
           Server: 
-          <span id="status">{{status}}</span> / <span id="online">{{peopleOnline}}</span> online.
+          <span id="status">{{status}}</span> / <span id="online">{{onlineCount}}</span> online.
       </div>
       <div class="side-nav">
-        <h2>加入房間</h2>
+        <h4>加入房間</h4>
         <div id='join-room'>
           <input v-model="roomName" name="joinRoom" id="room-input" placeholder="Room to join ..." @keyup.13="joinRoom">
           <br>
@@ -17,7 +17,7 @@
           </div>
         </div>
 
-        <h2>被邀請的房間</h2>
+        <h4>被邀請的房間</h4>
         <div id='invited-room'>
           <table>
             <tr v-for="(roomInvited) in roomInvitedList">
@@ -28,13 +28,13 @@
           </table>
         </div>
 
-        <h2>選擇聊天對象</h2>
+        <h4>選擇聊天對象</h4>
         <div id='chose-to-say'>
           <table>
-            <tr v-for="(room) in roomList">
+            <tr v-for="(room) in roomJoinedList">
                 <td><label :for="room">{{room}}</label></td>
                 <label :for="room"><input type="radio" v-model="chatData.chatSelect" :id="room" :value='room' name="chose"/></label>
-                <td><button type='button' @click="inviteToRoom(room)">invite</button></td>
+                <td><button v-b-modal.myModal @click="roomInvite=room; checkedNames=[]; memberNotIn();" type='button'>invite</button></td>
             </tr>
 
             <tr v-for="(memberAcc) in memberList">
@@ -43,24 +43,32 @@
             </tr>
           </table>
         </div>
+
+        <b-modal id="myModal" @ok="inviteToRoom">
+          請選擇要邀請的人 :
+          <br>
+          <b-form-checkbox-group stacked v-model="checkedNames" name="flavour2" :options="memberOption">
+          </b-form-checkbox-group>
+        </b-modal>
       </div>
-      
+
       <div class="chatroom">
-        <h2>開始聊天</h2>
+        <h4>開始聊天</h4>
         <ul class="chat-box">
           <li v-for="msg in msgs">
             {{msg.msg}}
-            <div v-if="msg.urlResult.success==true">
-              <a :href="msg.urlResult.requestUrl">{{msg.urlResult.data.ogTitle}}</a>
+            <div v-if="msg.urlResult!=null">
+              <div v-if="msg.urlResult.success==true">
+                <a :href="msg.urlResult.requestUrl">{{msg.urlResult.data.ogTitle}}</a>
 
-              <div v-if="msg.urlResult.data.ogVideo">
-                <iframe width="384" height="216" :src="msg.urlResult.data.ogVideo.url" allowfullscreen></iframe>
+                <div v-if="msg.urlResult.data.ogVideo">
+                  <iframe width="384" height="216" :src="msg.urlResult.data.ogVideo.url" allowfullscreen></iframe>
+                </div>
+
+                <div v-else-if="msg.urlResult.data.ogImage && !Array.isArray(msg.urlResult.data.ogImage)">
+                  <a :href="msg.urlResult.requestUrl"><img :src="msg.urlResult.data.ogImage.url" width="100" height="100"></a>
+                </div>
               </div>
-
-              <div v-else-if="msg.urlResult.data.ogImage && !Array.isArray(msg.urlResult.data.ogImage)">
-                <a :href="msg.urlResult.requestUrl"><img :src="msg.urlResult.data.ogImage.url" width="100" height="100"></a>
-              </div>
-
             </div>
           </li>
         </ul>
@@ -85,17 +93,34 @@ export default {
       },
       Acc:'',
       roomName: '',
-      peopleOnline: '',
+      onlineCount: '',
       status: '',
       msgs: [],
       memberList: [],
       roomJoinedList: [],
       roomInvitedList: [],
       roomList: [],
+      memberOption: [],
+      checkedNames: [],
       roomBelong: '',
+      roomInvite: '',
     };
   },
   methods: {
+
+    memberNotIn()
+    {
+      let allMember = JSON.parse(sessionStorage[this.roomBelong+':all']);
+      let alreadyInRoom = JSON.parse(sessionStorage[this.roomInvite+':all']);
+
+      let diff = allMember.filter(n => alreadyInRoom.indexOf(n) == -1);
+
+      this.memberOption = [];
+
+      for(let member of diff)
+        this.memberOption.push({text: member,value: member});
+
+    },
 
     inviteResponse(theChose,room)
     {
@@ -107,11 +132,11 @@ export default {
       this.$socket.emit('inviteResponse',responseData);
     },
 
-    inviteToRoom(room)
+    inviteToRoom()
     {
       let inviteData = {
-        roomTo: room,
-        members: [9, 10],
+        roomTo: this.roomInvite,
+        members: this.checkedNames,
         token: localStorage.token,
       };
       this.$socket.emit('inviteToRoom',inviteData)
@@ -151,7 +176,6 @@ export default {
       this.$socket.emit('joinRoom', joinData);
       console.log('join '+this.roomName);
     },
-
   },
 
   sockets: {
@@ -195,10 +219,14 @@ export default {
     membersInRoom(data)
     {
       console.log(data.roomName+' : '+data.members);
-      if(data.roomName == localStorage.roomBelong)
+      if(data.roomName == sessionStorage.roomBelong)
       {
         this.memberList = data.members;
-        this.peopleOnline = data.members.length;
+        this.onlineCount = data.members.length;
+      }
+      else if (data.roomName.slice(-4)==':all')
+      {
+        sessionStorage[data.roomName]=JSON.stringify(data.members);
       }
     },
 
@@ -235,11 +263,11 @@ export default {
 
     showSelfMsg(memberMsg)
     {
-      localStorage.setItem('Account',memberMsg.Acc);
+      sessionStorage.setItem('Account',memberMsg.Acc);
       this.Acc = memberMsg.Acc;
-      localStorage.setItem('roomBelong', memberMsg.roomBelong+'_:Player');
       this.roomBelong = memberMsg.roomBelong+'_:Player';
-      this.chatData.chatSelect = memberMsg.roomBelong+'_:Player';
+      sessionStorage.setItem('roomBelong', this.roomBelong);
+      this.chatData.chatSelect = this.roomBelong;
     },
 
     disconnect(){
@@ -265,7 +293,7 @@ export default {
     height: 100%;
   }
 
-  h2{
+  h4{
     clear: both;
   }
 
