@@ -110,10 +110,10 @@ export default {
 
     memberNotIn()
     {
-      let allMember = JSON.parse(sessionStorage[this.roomBelong+':all']);
+      let allPlayer = JSON.parse(sessionStorage[this.roomBelong+':all']);
       let alreadyInRoom = JSON.parse(sessionStorage[this.roomInvite+':all']);
 
-      let diff = allMember.filter(n => alreadyInRoom.indexOf(n) == -1);
+      let diff = allPlayer.filter(n => alreadyInRoom.indexOf(n) == -1);
 
       this.memberOption = [];
 
@@ -239,6 +239,18 @@ export default {
     roomJoined(roomJoinedList)
     {
       this.roomJoinedList = roomJoinedList;
+
+      //從sessionStorage刪除已經離開的room
+      if(sessionStorage.roomJoinedList != null)
+      {
+        let roomOld = JSON.parse(sessionStorage.roomJoinedList);
+        let roomNotIn = roomOld.filter(function(n){ return roomJoinedList.indexOf(n)==-1 });
+
+        for(let room of roomNotIn)
+          sessionStorage.removeItem(room+':all');
+      }
+
+      sessionStorage.roomJoinedList = JSON.stringify(roomJoinedList);
     },
 
     kickOut()
